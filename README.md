@@ -3,7 +3,7 @@
 ## Experiment 1 
 A faithful PyTorch reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero - arXiv:2603.19312, 2026): a stable end-to-end Joint-Embedding Predictive Architecture (JEPA) world model trained from raw pixels.
 
-Replicates the canonical mechanism - 2-layer MLP projector with BN-in-middle, separate `pred_proj` for asymmetric projection, full DiT-style AdaLN-zero with multiplicative residual gates, SIGReg with sample-count scaling and trapezoidal Epps–Pulley quadrature, LinearWarmupCosineAnnealingLR — on a synthetic 2D-particle environment for fast attribution-clean iteration. No dependency on `stable-pretraining` or `stable-worldmodel`; everything is in this repo.
+Replicates the canonical mechanis, 2-layer MLP projector with BN-in-middle, separate `pred_proj` for asymmetric projection, full DiT-style AdaLN-zero with multiplicative residual gates, SIGReg with sample-count scaling and trapezoidal Epps–Pulley quadrature, LinearWarmupCosineAnnealingLR, on a synthetic 2D-particle environment for fast attribution-clean iteration. No dependency on `stable-pretraining` or `stable-worldmodel`; everything is in this repo.
 
 ### Status
 

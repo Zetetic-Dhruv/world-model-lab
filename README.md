@@ -1,10 +1,11 @@
-# le-wm-reproduction
+# World Models for preventing Machine Errors in long horizon automation
 
+## Experiment 1 
 A faithful PyTorch reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero — arXiv:2603.19312, 2026): a stable end-to-end Joint-Embedding Predictive Architecture (JEPA) world model trained from raw pixels.
 
 Replicates the canonical mechanism — 2-layer MLP projector with BN-in-middle, separate `pred_proj` for asymmetric projection, full DiT-style AdaLN-zero with multiplicative residual gates, SIGReg with sample-count scaling and trapezoidal Epps–Pulley quadrature, LinearWarmupCosineAnnealingLR — on a synthetic 2D-particle environment for fast attribution-clean iteration. No dependency on `stable-pretraining` or `stable-worldmodel`; everything is in this repo.
 
-## Status
+### Status
 
 - ✓ Faithful mechanism replication (5/5 kill checks pass)
 - ✓ Stable training: 0 NaN, 0 recoveries, no collapse over 1050 steps
@@ -13,7 +14,7 @@ Replicates the canonical mechanism — 2-layer MLP projector with BN-in-middle, 
 - ✓ ~18M parameters, ~50 min CPU training for 10 epochs on a 2D-particle env
 - ✓ Includes a threaded NaN-recovery supervisor for hardware-flaky substrates (Apple MPS, etc.)
 
-## Layout
+### Layout
 
 ```
 src/
@@ -36,7 +37,7 @@ train.py                  Training entry point
 eval_probe.py             Linear probe + open-loop rollout MSE
 ```
 
-## Setup
+### Setup
 
 ```bash
 pip install -r requirements.txt
@@ -44,7 +45,7 @@ pip install -r requirements.txt
 
 Python ≥ 3.9, PyTorch ≥ 2.0. `wandb` optional (CSV fallback in `runs/<name>/train_log.csv`).
 
-## Usage
+### Usage
 
 ```bash
 # 1. Pre-flight kill checks (run before any training run)
@@ -57,7 +58,7 @@ python train.py --device cpu --no-wandb --out-dir runs/v3-10ep --epochs 10
 python eval_probe.py --ckpt runs/v3-10ep/ckpt_epoch9.pt
 ```
 
-## Canonical config (matches official `lucas-maes/le-wm`)
+### Config (mostly matches official `lucas-maes/le-wm`)
 
 | Component | Setting |
 |---|---|
@@ -72,7 +73,7 @@ python eval_probe.py --ckpt runs/v3-10ep/ckpt_epoch9.pt
 | Scheduler | LinearWarmupCosineAnnealingLR, 1% warmup, cosine to 0 |
 | Batch | 128 |
 
-## Reproduction numbers — Round 3-10ep, synthetic 2D particle, 1050 steps
+### Reproduction numbers — Round 3-10ep, synthetic 2D particle, 1050 steps
 
 | Metric | Value |
 |---|---|
@@ -87,7 +88,7 @@ python eval_probe.py --ckpt runs/v3-10ep/ckpt_epoch9.pt
 
 The flat rollout-MSE-across-horizons is a property of the bounded-motion synthetic env (particle moves ~4 px/frame, latent change is bounded), not predictor failure. Predictor MSE ≈ 0.43× identity baseline at every horizon.
 
-## Kill checks (pre-train assertions)
+### Other checks and checks (pre-train assertions)
 
 ```
 1. Projection has no BN after final Linear (BN-in-middle topology)
@@ -99,7 +100,7 @@ The flat rollout-MSE-across-horizons is a property of the bounded-motion synthet
 
 All pass on the current implementation.
 
-## Reference
+### Reference
 
 Maes, L., Le Lidec, Q., Scieur, D., LeCun, Y., Balestriero, R. *LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels.* arXiv:2603.19312, 2026.
 

@@ -2,3 +2,5 @@ torch>=2.0
 numpy>=1.24
 # wandb is optional; if absent, train.py falls back to CSV logging
 # wandb>=0.16
+# h5py is optional; required only for HDF5TrajectoryDataset (real-data workflows)
+# h5py>=3.0

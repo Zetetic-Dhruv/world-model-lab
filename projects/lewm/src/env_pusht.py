@@ -154,14 +154,145 @@ class MiniPushTEnv:
         return self.block_to_target_distance() < self.success_radius
 
     def goal_observation(self) -> np.ndarray:
-        """Render a frame showing the block at the target (and agent in its current position).
-
-        Useful for goal-conditioned planning: encode this image as `z_goal`.
+        """[DEPRECATED for canonical eval] Render an OOD frame with block teleported to
+        target while agent stays at current position. Path C uses real expert-trajectory
+        goal frames instead — see eval_planning.py. Kept for diagnostic ablations only.
         """
-        # Save current block pos
         bx, by = self.block_x, self.block_y
         self.block_x = self.target_x
         self.block_y = self.target_y
         img = self.observe()
         self.block_x, self.block_y = bx, by
         return img
+
+    def set_state(self, state: np.ndarray):
+        """Set env state directly from a 6-d (agent_x, agent_y, block_x, block_y,
+        target_x, target_y) vector. Used for expert-trajectory eval to seed an
+        episode at a recorded init state."""
+        s = np.asarray(state, dtype=np.float32)
+        self.agent_x = float(s[0])
+        self.agent_y = float(s[1])
+        self.block_x = float(s[2])
+        self.block_y = float(s[3])
+        self.target_x = float(s[4])
+        self.target_y = float(s[5])
+
+    def is_terminated(self) -> bool:
+        """Canonical (Gym-style) termination: True iff goal reached.
+        Headline metric for Path C eval. Identical to is_success() under our
+        simplified geometry; renamed to match Gym semantics."""
+        return self.is_success()
+
+
+def weak_policy(
+    state: np.ndarray,
+    rng: np.random.Generator,
+    *,
+    env_size: int = 64,
+    action_scale: float = 4.0,
+    dist_constraint: float = 6.0,
+) -> np.ndarray:
+    """Path C canonical data-collection policy. Mirrors stable-worldmodel's
+    WeakPolicy: contact-biased random exploration. NOT a goal-reaching policy.
+
+    Algorithm (matches stable-worldmodel/envs/pusht/expert_policy.py:WeakPolicy):
+      1. Sample uniform action in [-1, 1] (target world-coord delta).
+      2. Convert to world-coordinate target = agent_pos + action * action_scale.
+      3. Constrain target to a box around the block: target ∈
+         [block - dist_constraint, block + dist_constraint].
+      4. Rescale back to action space: action = (target - agent) / action_scale.
+
+    Effect: agent's commanded position stays within `dist_constraint` of the
+    block, producing contact-rich trajectories. No success requirement.
+
+    Returns 2-d action in approximately [-1, 1]^2 (clipped at env.step level).
+    """
+    agent = state[:2].astype(np.float32)
+    block = state[2:4].astype(np.float32)
+    # Random delta in [-1, 1]
+    a_raw = rng.uniform(-1.0, 1.0, size=2).astype(np.float32)
+    # World-coord target the agent would move toward
+    target_world = agent + a_raw * action_scale
+    # Constrain to box around block
+    target_world = np.clip(target_world,
+                           block - dist_constraint,
+                           block + dist_constraint)
+    # Rescale back to action space
+    action = (target_world - agent) / action_scale
+    return np.clip(action, -1.0, 1.0).astype(np.float32)
+
+
+def expert_policy(
+    state: np.ndarray,
+    env_size: int = 64,
+    margin: float = 8.0,
+    push_offset: float = 8.0,
+    contact_radius: float = 7.0,
+    side_radius: float = 12.0,
+) -> np.ndarray:
+    """Heuristic push-toward-target expert for MiniPushT.
+
+    Decision tree:
+      1. If agent is on the PUSH side (behind block from target): navigate to
+         push position; if close enough, push toward target.
+      2. If agent is on the TARGET side (would push block away from target):
+         pick a SIDE WAYPOINT (90° off push_dir, on the side closer to agent)
+         and navigate toward it. Once at the side, the next step's geometry
+         puts the agent on the push side and the policy switches to (1).
+
+    The key fix vs naive perpendicular sidestep: we navigate TO a concrete
+    side waypoint (computed from block + perp * side_radius, clipped to env
+    bounds), instead of just moving perpendicular indefinitely. Without the
+    waypoint, the agent moves perpendicular until hitting a wall and stalls.
+
+    Returns 2-d action in [-1, 1]^2.
+    """
+    agent = state[:2].astype(np.float32)
+    block = state[2:4].astype(np.float32)
+    target = state[4:6].astype(np.float32)
+
+    push_dir = target - block
+    push_dist = float(np.linalg.norm(push_dir))
+    if push_dist < 1.0:
+        return np.zeros(2, dtype=np.float32)
+    push_dir = push_dir / push_dist
+    perp = np.array([-push_dir[1], push_dir[0]], dtype=np.float32)
+
+    block_to_agent = agent - block
+    bta_dist = float(np.linalg.norm(block_to_agent))
+
+    # Decide side: agent is on push side iff dot(agent-block, -push_dir) > 0,
+    # i.e. agent lies in the half-plane opposite to target across block's center.
+    on_push_side = (bta_dist > 0.1 and float(np.dot(block_to_agent, -push_dir)) > 2.0)
+
+    if on_push_side:
+        # Phase B/C — straight navigate or push
+        if bta_dist < contact_radius:
+            return np.clip(push_dir, -1.0, 1.0).astype(np.float32)
+        push_pos = block - push_dir * push_offset
+        push_pos = np.clip(push_pos, margin, env_size - margin)
+        diff = push_pos - agent
+        diff_dist = float(np.linalg.norm(diff))
+        if diff_dist > 0.5:
+            return np.clip(diff / diff_dist, -1.0, 1.0).astype(np.float32)
+        return np.clip(push_dir, -1.0, 1.0).astype(np.float32)
+
+    # Phase A — agent is on target side; route via a side waypoint.
+    # Pick the side closer to the agent.
+    side_a = block + perp * side_radius
+    side_b = block - perp * side_radius
+    side_a_clipped = np.clip(side_a, margin, env_size - margin)
+    side_b_clipped = np.clip(side_b, margin, env_size - margin)
+    da = float(np.linalg.norm(side_a_clipped - agent))
+    db = float(np.linalg.norm(side_b_clipped - agent))
+    side_wp = side_a_clipped if da <= db else side_b_clipped
+
+    diff = side_wp - agent
+    diff_dist = float(np.linalg.norm(diff))
+    if diff_dist > 0.5:
+        return np.clip(diff / diff_dist, -1.0, 1.0).astype(np.float32)
+    # If we're at the side already, take a step toward push_pos
+    push_pos = block - push_dir * push_offset
+    push_pos = np.clip(push_pos, margin, env_size - margin)
+    diff2 = push_pos - agent
+    return np.clip(diff2 / max(np.linalg.norm(diff2), 1e-6), -1.0, 1.0).astype(np.float32)

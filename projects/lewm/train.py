@@ -41,6 +41,10 @@ from src.env_pusht import MiniPushTEnv
 from src.data import (
     generate_trajectories,
     generate_pusht_trajectories,
+    generate_weak_policy_trajectories,
+    write_canonical_h5,
+    split_episodes_by_trajectory,
+    PathCStrideDataset,
     TrajectoryDataset,
     EpisodeDirectoryDataset,
 )
@@ -80,11 +84,14 @@ def evaluate_validation(model, val_dl, device) -> dict:
         for obs_b, act_b in val_dl:
             obs_b = obs_b.to(device, non_blocking=True)
             act_b = act_b.to(device, non_blocking=True)
-            emb, preds = model(obs_b, act_b)  # (B, T, D), (B, T, D)
-            # predictor MSE: preds[:, :-1] vs emb[:, 1:]
-            pred_loss = ((preds[:, :-1] - emb[:, 1:]) ** 2).mean(dim=(0, 1, 2)).item()
-            # identity MSE: emb[:, :-1] vs emb[:, 1:]
-            identity_loss = ((emb[:, :-1] - emb[:, 1:]) ** 2).mean(dim=(0, 1, 2)).item()
+            emb, preds = model(obs_b, act_b)
+            # Path C / canonical semantics:
+            #   emb: (B, T_obs, D), preds: (B, T_a, D)  where T_a = T_obs - 1
+            #   preds[:, t] predicts emb[:, t+1] for t = 0..T_a-1
+            #   identity baseline: emb[:, :T_a] (= "predict z_t" at each token)
+            T_a = preds.size(1)
+            pred_loss = ((preds - emb[:, 1:T_a + 1]) ** 2).mean(dim=(0, 1, 2)).item()
+            identity_loss = ((emb[:, :T_a] - emb[:, 1:T_a + 1]) ** 2).mean(dim=(0, 1, 2)).item()
             n = obs_b.size(0)
             total_pred += pred_loss * n
             total_identity += identity_loss * n
@@ -133,6 +140,22 @@ def main():
     parser.add_argument("--wandb-project", default="lewm-vanilla")
     parser.add_argument("--no-wandb", action="store_true")
     parser.add_argument("--smoke", action="store_true")
+    # ---- Architecture overrides (default = canonical/full) ----
+    parser.add_argument("--encoder-depth", type=int, default=12)
+    parser.add_argument("--encoder-heads", type=int, default=3)
+    parser.add_argument("--vit-dim", type=int, default=192)
+    parser.add_argument("--latent-dim", type=int, default=192)
+    parser.add_argument("--proj-hidden-dim", type=int, default=2048,
+                        help="Hidden dim of the 2-layer MLP projector (and pred_proj).")
+    parser.add_argument("--predictor-depth", type=int, default=6)
+    parser.add_argument("--predictor-heads", type=int, default=16)
+    parser.add_argument("--predictor-dim-head", type=int, default=64,
+                        help="Per-head dim in predictor attention; inner_dim = heads × dim_head.")
+    parser.add_argument("--predictor-mlp-dim", type=int, default=2048)
+    parser.add_argument("--predictor-dropout", type=float, default=0.1)
+    parser.add_argument("--arch-preset", default=None,
+                        choices=["canonical", "small", "tiny"],
+                        help="Preset overrides. canonical=paper-default (~18M), small (~5M), tiny (~2M).")
     parser.add_argument("--env", default="particle", choices=["particle", "pusht"],
                         help="Synthetic environment: particle (default) or pusht (MiniPushT).")
     parser.add_argument("--bias-strength", type=float, default=0.5,
@@ -141,6 +164,15 @@ def main():
                         help="Path to an episode-directory dataset (manifest.json + ep_N.{npz|mp4+npy}). "
                              "If provided, --env and --n-episodes are ignored; data is loaded from disk. "
                              "Action_dim is read from manifest.")
+    parser.add_argument("--path-c", action="store_true",
+                        help="Path C: use WeakPolicy + canonical HDF5 + stride-5 + action_token_dim=10. "
+                             "Implies --env=pusht, history_size=3, action_dim=10. Generates and caches "
+                             "an HDF5 dataset on first run.")
+    parser.add_argument("--path-c-stride", type=int, default=5)
+    parser.add_argument("--path-c-history", type=int, default=3)
+    parser.add_argument("--path-c-episode-length", type=int, default=100)
+    parser.add_argument("--h5-path", default=None,
+                        help="Override the auto-derived HDF5 path for Path C.")
     parser.add_argument("--val-fraction", type=float, default=0.1,
                         help="Fraction of episodes held out for validation (default 0.1). "
                              "Episodes are split episode-wise; val set is held-out from the END "
@@ -159,6 +191,27 @@ def main():
         args.batch_size = 16
         args.num_projections = 128
 
+    # Apply arch presets (CLI flag values still win if set explicitly via env vars,
+    # but here we just override unconditionally if a preset is passed).
+    if args.arch_preset == "canonical":
+        pass  # defaults already canonical
+    elif args.arch_preset == "small":
+        args.encoder_depth = 12
+        args.encoder_heads = 3
+        args.proj_hidden_dim = 512
+        args.predictor_depth = 6
+        args.predictor_heads = 8
+        args.predictor_dim_head = 24
+        args.predictor_mlp_dim = 768
+    elif args.arch_preset == "tiny":
+        args.encoder_depth = 6
+        args.encoder_heads = 3
+        args.proj_hidden_dim = 384
+        args.predictor_depth = 4
+        args.predictor_heads = 8
+        args.predictor_dim_head = 24
+        args.predictor_mlp_dim = 576
+
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -171,7 +224,61 @@ def main():
 
     # ---------------------------------------------------------------- Data
     val_ds = None
-    if args.episode_dir is not None:
+
+    if args.path_c:
+        # Canonical Path C: WeakPolicy data, stride=5, action_token_dim=10,
+        # history_size=3 (max_history=3 for predictor pos_embed).
+        h5_path = Path(args.h5_path) if args.h5_path else (
+            Path(args.data_dir) / f"pusht_weakpolicy_n{args.n_episodes}_T{args.path_c_episode_length}.h5"
+        )
+        h5_path.parent.mkdir(parents=True, exist_ok=True)
+        if not h5_path.exists():
+            print(f"[data] generating {args.n_episodes} WeakPolicy trajectories × "
+                  f"{args.path_c_episode_length} env steps...")
+            obs, actions, states = generate_weak_policy_trajectories(
+                MiniPushTEnv,
+                n_episodes=args.n_episodes,
+                length=args.path_c_episode_length,
+                seed=args.seed,
+            )
+            write_canonical_h5(h5_path, obs, actions, states, obs_as_uint8=True,
+                               metadata={"env": "MiniPushT", "policy": "weak_policy",
+                                         "seed": args.seed,
+                                         "stride": args.path_c_stride,
+                                         "history_size": args.path_c_history})
+            print(f"[data] wrote {h5_path}")
+        else:
+            print(f"[data] using cached {h5_path.name}")
+
+        splits = split_episodes_by_trajectory(
+            args.n_episodes,
+            splits={"train": 1 - args.val_fraction, "val": args.val_fraction},
+            seed=args.seed,
+        )
+        train_ds = PathCStrideDataset(
+            h5_path, splits["train"],
+            history_size=args.path_c_history, stride=args.path_c_stride,
+        )
+        val_ds = PathCStrideDataset(
+            h5_path, splits["val"],
+            history_size=args.path_c_history, stride=args.path_c_stride,
+        )
+        action_dim_for_model = 2 * args.path_c_stride  # action_token = stride raw actions
+        # Override sub_len/max_history to match Path C history_size
+        args.sub_len = args.path_c_history
+        print(f"[split] train={len(splits['train'])} eps ({len(train_ds)} windows)  "
+              f"val={len(splits['val'])} eps ({len(val_ds)} windows)")
+        print(f"[path-c] action_dim={action_dim_for_model}  "
+              f"history_size={args.path_c_history}  stride={args.path_c_stride}")
+        # Save split for downstream eval reproducibility
+        split_path = Path(args.out_dir) / "splits.npz"
+        Path(args.out_dir).mkdir(parents=True, exist_ok=True)
+        np.savez(split_path,
+                 train=splits["train"], val=splits["val"],
+                 h5_path=str(h5_path))
+        print(f"[split] saved → {split_path}")
+
+    elif args.episode_dir is not None:
         # External labeled video data — episode-directory format.
         print(f"[data] loading episode directory: {args.episode_dir}")
         train_ds = EpisodeDirectoryDataset(args.episode_dir, sub_len=args.sub_len)
@@ -257,23 +364,26 @@ def main():
         image_size=64,
         patch_size=8,
         in_chans=3,
-        vit_dim=192,
-        encoder_depth=12,
-        encoder_heads=3,
-        latent_dim=192,
-        proj_hidden_dim=2048,
-        predictor_depth=6,
-        predictor_heads=16,
-        predictor_dim_head=64,
-        predictor_mlp_dim=2048,
-        predictor_dropout=0.1,
+        vit_dim=args.vit_dim,
+        encoder_depth=args.encoder_depth,
+        encoder_heads=args.encoder_heads,
+        latent_dim=args.latent_dim,
+        proj_hidden_dim=args.proj_hidden_dim,
+        predictor_depth=args.predictor_depth,
+        predictor_heads=args.predictor_heads,
+        predictor_dim_head=args.predictor_dim_head,
+        predictor_mlp_dim=args.predictor_mlp_dim,
+        predictor_dropout=args.predictor_dropout,
         action_dim=action_dim_for_model,
         max_history=args.sub_len,
         sigreg_num_proj=args.num_projections,
         sigreg_knots=args.sigreg_knots,
     ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f"[model] params={n_params:,}")
+    print(f"[model] preset={args.arch_preset or 'custom'}  params={n_params:,}  "
+          f"(enc d={args.encoder_depth} h={args.encoder_heads}  "
+          f"proj_h={args.proj_hidden_dim}  "
+          f"pred d={args.predictor_depth} h={args.predictor_heads}×{args.predictor_dim_head} mlp={args.predictor_mlp_dim})")
 
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay

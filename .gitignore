@@ -3,6 +3,8 @@ __pycache__/
 *.pyo
 .DS_Store
 **/data/*.npz
+**/data/*.h5
+**/data/*.hdf5
 **/runs/
 **/wandb/
 .ipynb_checkpoints/

@@ -86,13 +86,27 @@ class LeWM(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Full forward: encode obs, run predictor, project predictions.
 
-        Returns
-        -------
-        emb   : (B, T, D) post-projector encoder embeddings (SIGReg target).
-        preds : (B, T, D) post-pred_proj predictions (one-step-ahead).
+        Path C dataset asymmetry:
+          obs shape:     (B, T_obs, C, H, W) where T_obs = history_size + 1
+          actions shape: (B, T_a, A)         where T_a   = history_size
+
+          Encoder pass: emb = encoder(obs)        — shape (B, T_obs, D)
+          Predictor input: emb[:, :T_a]           — the "history" portion
+          Predictor input action_tokens: actions  — (B, T_a, A)
+          Predictor output: preds                 — (B, T_a, D)
+          Pred at position t predicts emb[t+1]    — i.e. emb[:, 1:T_a+1] = emb[:, 1:]
+
+        For backward compatibility (T_obs == T_a, single-frame-per-token), the
+        predictor still works; emb[:, :T_a] = emb (full window).
+
+        Returns (emb, preds) where:
+          emb:   (B, T_obs, D)  — full post-projector encoder embeddings
+          preds: (B, T_a,   D)  — post-pred_proj predictions
         """
         emb = self.encode(obs)
-        preds = self.predict(emb, actions)
+        T_a = actions.size(1)
+        history_emb = emb[:, :T_a]
+        preds = self.predict(history_emb, actions)
         return emb, preds
 
 
@@ -102,17 +116,17 @@ def lewm_loss(
     sigreg_module: SIGReg,
     lambda_sigreg: float = 0.09,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Round 3 canonical loss.
+    """Path C canonical loss.
 
-    L_pred  = MSE(preds[:, :-1], emb[:, 1:])    teacher-forced next-step.
-    L_sigreg = SIGReg(emb in (T, B, D) layout)  per-time-step + B-scaled.
-    L = L_pred + λ * L_sigreg.
+      emb:   (B, T_obs, D)        post-projector encoder embeddings
+      preds: (B, T_a, D)          post-pred_proj predictions, T_a = T_obs - 1
 
-    Returns (L, L_pred, L_sigreg).
+      L_pred = MSE(preds, emb[:, 1:])    one-step-ahead, teacher-forced
+      L_sigreg = SIGReg(emb in (T_obs, B, D)) per-step + B-scaled
+      L = L_pred + λ * L_sigreg
     """
-    # next-step MSE on (B, T, D) layout, predictions are pred_proj outputs
-    pred_loss = (preds[:, :-1] - emb[:, 1:]).pow(2).mean()
-    # SIGReg expects (T, B, D)
+    T_a = preds.size(1)
+    pred_loss = (preds - emb[:, 1:T_a + 1]).pow(2).mean()
     sigreg_loss = sigreg_module(emb.transpose(0, 1).contiguous())
     total = pred_loss + lambda_sigreg * sigreg_loss
     return total, pred_loss, sigreg_loss

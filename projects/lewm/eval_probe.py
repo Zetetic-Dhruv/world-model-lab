@@ -24,23 +24,23 @@ from src.lewm.model import LeWM
 
 
 def load_model(ckpt_path: str, device: torch.device) -> LeWM:
+    """Reconstruct the model with architecture sizes read from the checkpoint's args."""
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     args = ckpt["args"]
-    # Round 3 canonical architecture
     model = LeWM(
         image_size=64,
         patch_size=8,
         in_chans=3,
-        vit_dim=192,
-        encoder_depth=12,
-        encoder_heads=3,
-        latent_dim=192,
-        proj_hidden_dim=2048,
-        predictor_depth=6,
-        predictor_heads=16,
-        predictor_dim_head=64,
-        predictor_mlp_dim=2048,
-        predictor_dropout=0.1,
+        vit_dim=args.get("vit_dim", 192),
+        encoder_depth=args.get("encoder_depth", 12),
+        encoder_heads=args.get("encoder_heads", 3),
+        latent_dim=args.get("latent_dim", 192),
+        proj_hidden_dim=args.get("proj_hidden_dim", 2048),
+        predictor_depth=args.get("predictor_depth", 6),
+        predictor_heads=args.get("predictor_heads", 16),
+        predictor_dim_head=args.get("predictor_dim_head", 64),
+        predictor_mlp_dim=args.get("predictor_mlp_dim", 2048),
+        predictor_dropout=args.get("predictor_dropout", 0.1),
         action_dim=2,
         max_history=args["sub_len"],
         sigreg_num_proj=args.get("num_projections", 1024),

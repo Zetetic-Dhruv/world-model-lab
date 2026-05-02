@@ -61,6 +61,50 @@ def generate_trajectories(
     )
 
 
+def generate_weak_policy_trajectories(
+    env_fn: Callable,
+    n_episodes: int = 500,
+    length: int = 100,
+    action_dim: int = 2,
+    dist_constraint: float = 6.0,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Path C canonical trajectory generator — WeakPolicy contact-rich exploration.
+
+    Mirrors stable-worldmodel's WeakPolicy. Agent's commanded position is
+    constrained to within `dist_constraint` of the block. Contact rate ~85%.
+    NOT a goal-reaching policy.
+
+    Returns (obs, actions, states) with shapes
+        obs:     (E, T, H, W, C) float32
+        actions: (E, T, action_dim) float32
+        states:  (E, T, state_dim) float32
+    """
+    from .env_pusht import weak_policy
+    rng = np.random.default_rng(seed)
+    obs_traj, act_traj, state_traj = [], [], []
+    for _ in range(n_episodes):
+        env = env_fn(seed=int(rng.integers(0, 2**31 - 1)))
+        obs = [env.reset()]
+        states = [env.state()]
+        actions = []
+        for _ in range(length - 1):
+            a = weak_policy(env.state(), rng, dist_constraint=dist_constraint)
+            o = env.step(a)
+            obs.append(o)
+            actions.append(a)
+            states.append(env.state())
+        actions.append(actions[-1].copy())  # rectangular pad
+        obs_traj.append(np.stack(obs))
+        act_traj.append(np.stack(actions))
+        state_traj.append(np.stack(states))
+    return (
+        np.stack(obs_traj).astype(np.float32),
+        np.stack(act_traj).astype(np.float32),
+        np.stack(state_traj).astype(np.float32),
+    )
+
+
 def generate_pusht_trajectories(
     env_fn: Callable,
     n_episodes: int = 1000,
@@ -69,19 +113,9 @@ def generate_pusht_trajectories(
     bias_strength: float = 0.5,
     seed: int = 0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Trajectory generator for MiniPushT — biased exploration policy.
+    """[Diagnostic only] Biased-random trajectory generator. NOT canonical.
 
-    Pure random actions almost never produce contact in MiniPushT (the agent
-    has to hit a 10×10 block in a 64×64 frame). This policy is a noisy
-    random-walk biased toward the *block* with strength `bias_strength`.
-    Result: ~30–50% of frames involve agent-near-block contact, giving the
-    encoder/predictor non-trivial dynamics to learn.
-
-    Returns
-    -------
-    obs : (E, T, H, W, C) float32
-    actions : (E, T, A) float32 — last action repeated to keep arrays rectangular
-    states : (E, T, S) float32 — full env state for probing
+    Use generate_weak_policy_trajectories for Path C training data.
     """
     rng = np.random.default_rng(seed)
     obs_traj, act_traj, state_traj = [], [], []
@@ -438,3 +472,214 @@ def write_episode_directory(
     else:
         raise ValueError(f"format must be 'npz' or 'video', got {format!r}")
     return out_dir
+
+
+# ===========================================================================
+# Path C canonical dataset infrastructure
+# ===========================================================================
+#
+# HDF5 schema (matches stable-worldmodel pusht_expert_train.h5):
+#
+#   /obs           (E, T, H, W, C)  uint8 [0,255]   — RGB frames per env step
+#   /actions       (E, T, A)        float32          — per-env-step actions
+#   /states        (E, T, S)        float32          — env state for diagnostics
+#   /episode_ends  (E,)             int64            — cumulative end indices
+#                                                      (sw-style; T*ep for fixed)
+#
+# Frameskip semantics live ABOVE this layer in PathCStrideDataset, NOT in the
+# HDF5 (which records per-env-step). One source-of-truth for env steps.
+# ===========================================================================
+
+
+def write_canonical_h5(
+    out_path: str | "Path",
+    obs: np.ndarray,         # (E, T, H, W, C) float32 [0,1] OR uint8 [0,255]
+    actions: np.ndarray,     # (E, T, A) float32 — per-env-step
+    states: np.ndarray,      # (E, T, S) float32
+    *,
+    obs_as_uint8: bool = True,
+    metadata: dict | None = None,
+):
+    """Save trajectories in the canonical HDF5 schema."""
+    import h5py
+    from pathlib import Path
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    obs_to_save = obs
+    if obs_as_uint8 and obs.dtype != np.uint8:
+        obs_to_save = (np.clip(obs, 0, 1) * 255).astype(np.uint8)
+    elif not obs_as_uint8 and obs.dtype != np.float32:
+        obs_to_save = obs.astype(np.float32) / 255.0
+
+    E, T = obs.shape[:2]
+    episode_ends = np.cumsum(np.full(E, T, dtype=np.int64))
+
+    with h5py.File(out_path, "w") as f:
+        f.create_dataset("obs", data=obs_to_save, compression="gzip")
+        f.create_dataset("actions", data=actions.astype(np.float32),
+                         compression="gzip")
+        f.create_dataset("states", data=states.astype(np.float32),
+                         compression="gzip")
+        f.create_dataset("episode_ends", data=episode_ends)
+        meta = {
+            "schema_version": "1.0",
+            "obs_dtype": str(obs_to_save.dtype),
+            "obs_range": "[0, 255]" if obs_to_save.dtype == np.uint8 else "[0, 1]",
+            "n_episodes": int(E),
+            "episode_length": int(T),
+            "action_dim": int(actions.shape[-1]),
+            "state_dim": int(states.shape[-1]),
+            "image_shape": list(obs.shape[2:]),
+        }
+        if metadata is not None:
+            meta.update(metadata)
+        for k, v in meta.items():
+            f.attrs[k] = v
+    return out_path
+
+
+def split_episodes_by_trajectory(
+    n_episodes: int,
+    splits: dict[str, float] | None = None,
+    seed: int = 0,
+) -> dict[str, np.ndarray]:
+    """Episode-level (NOT frame-level) train/val/test split. Prevents
+    leakage between splits; each trajectory is wholly in one split.
+    """
+    splits = splits or {"train": 0.8, "val": 0.1, "test": 0.1}
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(n_episodes)
+    out = {}
+    cur = 0
+    keys = list(splits.keys())
+    for i, k in enumerate(keys):
+        if i == len(keys) - 1:
+            out[k] = perm[cur:]
+        else:
+            sz = int(round(splits[k] * n_episodes))
+            out[k] = perm[cur:cur + sz]
+            cur += sz
+    return out
+
+
+class PathCStrideDataset(Dataset):
+    """Path C training dataset: stride=5 transitions, action_token_dim=10.
+
+    Each item is a window of `history_size` "stride steps". Each stride step:
+      - obs at env step t  (uint8 or float32)
+      - obs at env step t+5 (the next-step target)
+      - action_token = concat(action[t], action[t+1], ..., action[t+4])
+
+    A window of size `history_size=3` covers 3 stride-steps × 5 = 15 env steps.
+
+    Args:
+      h5_path: canonical HDF5 file
+      episode_indices: list of episode indices to include (for split semantics)
+      history_size: window length in stride-steps (default 3, matches canonical)
+      stride: env-steps per stride-step (default 5)
+    """
+
+    def __init__(
+        self,
+        h5_path: str | "Path",
+        episode_indices: np.ndarray | list,
+        history_size: int = 3,
+        stride: int = 5,
+    ):
+        import h5py
+        self.h5_path = str(h5_path)
+        self.episode_indices = np.asarray(episode_indices)
+        self.history_size = history_size
+        self.stride = stride
+        self._h5: "h5py.File" | None = None
+
+        # Index: list of (episode_idx, start_env_step) pairs.
+        # A window starts at env step s and spans (history_size + 1) * stride
+        # env steps total — we need (history_size + 1) latents to compute
+        # MSE(predict[:, :-1], emb[:, 1:]) over a history_size-token window.
+        with h5py.File(self.h5_path, "r") as f:
+            T = int(f["obs"].shape[1])
+        max_start = T - (history_size + 1) * stride
+        if max_start < 0:
+            raise ValueError(
+                f"Episode length {T} too short for history_size={history_size} "
+                f"× stride={stride}; need ≥ {(history_size + 1) * stride} steps"
+            )
+        self._index = []
+        for e in self.episode_indices:
+            for s in range(0, max_start + 1):
+                self._index.append((int(e), int(s)))
+
+    def _open(self):
+        import h5py
+        if self._h5 is None:
+            self._h5 = h5py.File(self.h5_path, "r")
+        return self._h5
+
+    def __len__(self):
+        return len(self._index)
+
+    def __getitem__(self, idx: int):
+        e, s = self._index[idx]
+        f = self._open()
+        # window of (history_size + 1) obs frames at strided positions
+        H1 = self.history_size + 1
+        # pick obs at s, s+stride, s+2*stride, ..., s+history_size*stride
+        obs_indices = np.arange(H1) * self.stride + s
+        obs_window = np.asarray(f["obs"][e, obs_indices])  # (H1, H, W, C) uint8
+        if obs_window.dtype == np.uint8:
+            obs_window = obs_window.astype(np.float32) / 255.0
+        # action tokens: for each stride-step h ∈ [0, history_size),
+        # token h = concat(action[s + h*stride : s + (h+1)*stride])
+        action_tokens = []
+        for h in range(self.history_size):
+            base = s + h * self.stride
+            chunk = np.asarray(f["actions"][e, base:base + self.stride])  # (stride, A)
+            action_tokens.append(chunk.reshape(-1))  # (stride * A,)
+        action_tokens = np.stack(action_tokens).astype(np.float32)  # (history_size, 10)
+        # HWC -> CHW
+        obs_window = np.transpose(obs_window, (0, 3, 1, 2)).astype(np.float32)
+        return (
+            torch.from_numpy(np.ascontiguousarray(obs_window)),  # (H1, C, H, W)
+            torch.from_numpy(np.ascontiguousarray(action_tokens)),  # (history_size, 10)
+        )
+
+    def close(self):
+        if self._h5 is not None:
+            self._h5.close()
+            self._h5 = None
+
+
+def sample_offset_pair(
+    h5_path: str | "Path",
+    episode_indices: np.ndarray,
+    rng: np.random.Generator,
+    *,
+    offset_steps: int = 25,
+) -> tuple[int, int, int, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Path C eval pair sampler.
+
+    Returns (episode_idx, init_step, goal_step, init_obs, goal_obs,
+             init_state, goal_state).
+
+    The goal is the recorded state at init_step + offset_steps within the SAME
+    trajectory. Reachability is guaranteed by construction.
+    """
+    import h5py
+    with h5py.File(h5_path, "r") as f:
+        T = int(f["obs"].shape[1])
+        if T <= offset_steps:
+            raise ValueError(f"Episode length {T} ≤ offset_steps {offset_steps}")
+        e = int(rng.choice(episode_indices))
+        max_start = T - 1 - offset_steps
+        s = int(rng.integers(0, max_start + 1))
+        init_obs = np.asarray(f["obs"][e, s])
+        goal_obs = np.asarray(f["obs"][e, s + offset_steps])
+        init_state = np.asarray(f["states"][e, s]).astype(np.float32)
+        goal_state = np.asarray(f["states"][e, s + offset_steps]).astype(np.float32)
+        if init_obs.dtype == np.uint8:
+            init_obs = init_obs.astype(np.float32) / 255.0
+            goal_obs = goal_obs.astype(np.float32) / 255.0
+    return e, s, s + offset_steps, init_obs, goal_obs, init_state, goal_state

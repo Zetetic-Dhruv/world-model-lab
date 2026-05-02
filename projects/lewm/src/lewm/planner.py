@@ -1,255 +1,273 @@
-"""Cross-Entropy Method (CEM) planner in latent space, with MPC wrapper.
+"""Path C canonical CEM planner + MPC runner.
 
-Plans action sequences a*_{1:H} that minimize ‖predict(z_init, a) − z_goal‖²
-under the trained LeWM model. Predictor + pred_proj are frozen during planning.
-
-The MPC wrapper executes the first K_exec actions of each plan and replans
-from the new observation, until the goal is reached or the budget runs out.
+Canonical mechanism (matches stable-worldmodel/solver/cem.py + le-wm/jepa.py):
+  - Sample shape (N, H, action_block * action_dim)
+  - Each "horizon step" emits action_block raw env actions via unroll
+  - n_iters defaults to 30 (canonical universal)
+  - First sample of each iter forced to current mean (monotonicity guard)
+  - No internal action clipping (env clips at execution)
+  - Per-solver torch.Generator for deterministic sampling
+  - Real past actions filled into action history at plan onset
+  - Warm-start: previous plan's tail re-used as next-plan init
+  - Receding horizon decoupled from planning horizon
 """
 
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
+import numpy as np
 
 from .model import LeWM
 
 
 class CEMPlanner:
-    """Latent-space CEM over action sequences.
+    """Path C canonical CEM in latent space.
 
-    Parameters
-    ----------
-    model : LeWM
-        Trained model (frozen during planning).
-    horizon : int
-        Plan length H (number of action steps to optimize).
-    n_samples : int
-        Candidate sequences per CEM iteration (N).
-    n_elites : int
-        Top-K kept per iteration (K ≤ N).
-    n_iters : int
-        CEM refinement iterations (T).
-    sigma_init : float
-        Initial standard deviation of the proposal distribution.
-    sigma_min : float
-        Floor on the proposal std to avoid premature collapse.
-    action_dim : int
-    action_low, action_high : float
-        Per-dim clamp range for sampled actions (matches env action space).
-    sub_len : int
-        Predictor's history-window size (must equal training-time sub_len).
-        Plans are scored using the last `sub_len` positions of an
-        autoregressively-rolled-out latent sequence.
+    Args:
+      model: trained LeWM
+      horizon: plan length in HORIZON-STEPS (each step = action_block env steps)
+      action_block: env actions per horizon step (canonical PushT: 5)
+      action_dim: raw env action dim (canonical PushT: 2)
+      n_samples: candidate sequences per iter (canonical: 300)
+      n_elites: top-K kept per iter (canonical: 30)
+      n_iters: CEM iterations (canonical: 30 universal)
+      sigma_init: initial proposal std (canonical: 1.0)
+      history_size: predictor history-window size (canonical PushT: 3)
+      seed: RNG seed for the per-solver Generator
     """
 
     def __init__(
         self,
         model: LeWM,
         horizon: int = 5,
+        action_block: int = 5,
+        action_dim: int = 2,
         n_samples: int = 300,
         n_elites: int = 30,
-        n_iters: int = 10,
+        n_iters: int = 30,
         sigma_init: float = 1.0,
-        sigma_min: float = 0.1,
-        action_dim: int = 2,
-        action_low: float = -1.0,
-        action_high: float = 1.0,
-        sub_len: int = 4,
+        history_size: int = 3,
+        seed: int = 1234,
     ):
         self.model = model
         self.horizon = horizon
+        self.action_block = action_block
+        self.action_dim = action_dim
         self.n_samples = n_samples
         self.n_elites = n_elites
         self.n_iters = n_iters
         self.sigma_init = sigma_init
-        self.sigma_min = sigma_min
-        self.action_dim = action_dim
-        self.action_low = action_low
-        self.action_high = action_high
-        self.sub_len = sub_len
+        self.history_size = history_size
+        self.token_dim = action_block * action_dim
+        self.seed = seed
+        self._gen: torch.Generator | None = None
+
+    def _generator(self, device: torch.device) -> torch.Generator:
+        if self._gen is None or self._gen.device != device:
+            self._gen = torch.Generator(device=device)
+            self._gen.manual_seed(self.seed)
+        return self._gen
 
     @torch.no_grad()
     def _rollout_cost(
         self,
         z_history: torch.Tensor,
-        actions: torch.Tensor,
+        a_history: torch.Tensor,
+        candidates: torch.Tensor,
         z_goal: torch.Tensor,
     ) -> torch.Tensor:
-        """Score N candidate action sequences in batch.
+        """Score N candidate plans.
 
-        Parameters
-        ----------
-        z_history : (sub_len, D)
-            Encoder embeddings for the last sub_len observations (post-projector).
-            We use the LAST emb as the rollout starting point and feed
-            (sub_len, D) into the predictor each step (same window topology as
-            training).
-        actions : (N, H, action_dim)
-        z_goal : (D,)
-
-        Returns
-        -------
-        cost : (N,) — squared distance from final predicted emb to z_goal.
+        z_history:  (history_size, D)             — encoded past obs (stride=action_block)
+        a_history:  (history_size, token_dim)     — real past action tokens
+        candidates: (N, horizon, token_dim)
+        z_goal:     (D,)
+        Returns cost: (N,) — squared L2 of final predicted emb to z_goal.
         """
-        N, H, A = actions.shape
-        D = z_history.size(-1)
-        device = z_history.device
-
-        # Initialize per-candidate context: replicate z_history N times along batch.
-        # Shape: (N, sub_len, D)
-        ctx = z_history.unsqueeze(0).expand(N, -1, -1).contiguous()
-
-        # We need the predictor's history-window action input too. We use the
-        # most recent (sub_len-1) actions (zero-padded) plus the candidate's
-        # current action at position H.
-        # For simplicity and matching training topology: we feed the full
-        # (sub_len) window of latents and a (sub_len) window of actions, and
-        # the predictor outputs predictions at each position. We take position
-        # -1 as the next-emb prediction.
-        # We'll roll forward H steps; at each step k:
-        #   - window_z = ctx[:, -sub_len:]
-        #   - window_a = pad-and-shift to align: actions for the last sub_len
-        #     latent positions.
-        # For a fresh rollout we maintain a parallel "action window" buffer
-        # that we shift each step.
-
-        # Action window: (N, sub_len, A). We initialize to zeros and shift in
-        # candidate actions one by one. This matches training-time pattern
-        # where each predictor call takes the same-length history.
-        a_win = torch.zeros(N, self.sub_len, A, device=device, dtype=actions.dtype)
+        N, H, _ = candidates.shape
+        # Replicate (z_history, a_history) N times along batch
+        ctx_z = z_history.unsqueeze(0).expand(N, -1, -1).contiguous()
+        ctx_a = a_history.unsqueeze(0).expand(N, -1, -1).contiguous()
 
         for k in range(H):
-            # Shift action window left, place new action at the right
-            a_win = torch.roll(a_win, shifts=-1, dims=1)
-            a_win[:, -1, :] = actions[:, k, :]
-            # Predict from the current context window
-            window_z = ctx[:, -self.sub_len :, :]
-            preds = self.model.predict(window_z, a_win)  # (N, sub_len, D)
-            next_z = preds[:, -1:, :]  # (N, 1, D)
-            ctx = torch.cat([ctx, next_z], dim=1)
+            window_z = ctx_z[:, -self.history_size:, :]
+            window_a = ctx_a[:, -self.history_size:, :]
+            preds = self.model.predict(window_z, window_a)  # (N, history_size, D)
+            next_z = preds[:, -1:, :]
+            next_a = candidates[:, k:k + 1, :]
+            ctx_z = torch.cat([ctx_z, next_z], dim=1)
+            ctx_a = torch.cat([ctx_a, next_a], dim=1)
 
-        # Final predicted emb after H rollouts: ctx[:, -1, :]
-        z_final = ctx[:, -1, :]
-        # Cost = ‖z_final − z_goal‖²
+        z_final = ctx_z[:, -1, :]
         diff = z_final - z_goal.unsqueeze(0)
-        cost = diff.pow(2).sum(dim=-1)
-        return cost
+        return diff.pow(2).sum(dim=-1)
 
     @torch.no_grad()
     def plan(
         self,
-        obs_history: torch.Tensor,
-        obs_goal: torch.Tensor,
+        z_history: torch.Tensor,
+        a_history: torch.Tensor,
+        z_goal: torch.Tensor,
+        init_action: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Plan an action sequence of length H.
-
-        Parameters
-        ----------
-        obs_history : (sub_len, C, H, W) — last sub_len frames in chronological order.
-        obs_goal : (C, H, W) — single goal observation.
-
-        Returns
-        -------
-        actions : (H, action_dim) — best plan (mean of final CEM distribution).
-        """
+        """Run CEM. Returns mu: (horizon, token_dim) best plan in token form."""
         device = next(self.model.parameters()).device
-        obs_history = obs_history.to(device)
-        obs_goal = obs_goal.to(device)
+        z_history = z_history.to(device)
+        a_history = a_history.to(device)
+        z_goal = z_goal.to(device)
+        gen = self._generator(device)
 
-        # Encode history and goal once.
-        self.model.eval()
-        z_history = self.model.encoder(obs_history.unsqueeze(0))[0]  # (sub_len, D)
-        z_goal = self.model.encoder(obs_goal.unsqueeze(0).unsqueeze(0))[0, 0]  # (D,)
-
-        # Initialize CEM proposal distribution
-        H, A = self.horizon, self.action_dim
-        mu = torch.zeros(H, A, device=device, dtype=z_history.dtype)
-        sigma = torch.full((H, A), self.sigma_init,
+        H, T = self.horizon, self.token_dim
+        if init_action is not None:
+            mu = init_action.to(device, dtype=z_history.dtype)
+        else:
+            mu = torch.zeros(H, T, device=device, dtype=z_history.dtype)
+        sigma = torch.full((H, T), self.sigma_init,
                            device=device, dtype=z_history.dtype)
 
-        for _ in range(self.n_iters):
-            # Sample N candidates
+        for it in range(self.n_iters):
             samples = mu.unsqueeze(0) + sigma.unsqueeze(0) * torch.randn(
-                self.n_samples, H, A, device=device, dtype=z_history.dtype
+                self.n_samples, H, T, device=device, dtype=z_history.dtype,
+                generator=gen,
             )
-            samples = samples.clamp_(self.action_low, self.action_high)
+            # Canonical trick: first sample is the current mean (monotonicity guard)
+            samples[0] = mu
+            # No internal clipping — env clips at execution
 
-            costs = self._rollout_cost(z_history, samples, z_goal)  # (N,)
-            # Top-K elites (lowest cost)
+            costs = self._rollout_cost(z_history, a_history, samples, z_goal)
             elite_idx = torch.topk(costs, self.n_elites, largest=False).indices
-            elites = samples[elite_idx]  # (K, H, A)
+            elites = samples[elite_idx]
 
             mu = elites.mean(dim=0)
-            sigma = elites.std(dim=0).clamp_min(self.sigma_min)
+            sigma = elites.std(dim=0)
+            # No sigma_min floor (canonical)
 
-        return mu  # (H, A)
+        return mu  # (H, T)
+
+    @staticmethod
+    def unroll_plan(mu: torch.Tensor, action_block: int, action_dim: int) -> np.ndarray:
+        """Expand plan tokens (H, action_block * action_dim) → env actions (H * action_block, action_dim)."""
+        H, T = mu.shape
+        if T != action_block * action_dim:
+            raise ValueError(f"token_dim={T} != action_block * action_dim "
+                             f"= {action_block * action_dim}")
+        return mu.reshape(H, action_block, action_dim).reshape(-1, action_dim).cpu().numpy()
 
 
 class MPCRunner:
-    """Receding-horizon MPC: plan H actions, execute K_exec, replan.
+    """Path C MPC: receding-horizon execution with warm-start + real action history.
 
-    Stops on goal-reach or budget exhaustion. Returns success flag and
-    per-step trajectory (states/observations) for analysis.
+    The runner expects the env to be already in the desired init state. It:
+      1. Bootstraps `history_size * action_block` env steps of small random actions
+         to fill the action-history buffer (predictor needs real action context).
+      2. Plans via CEM, executes `receding_horizon * action_block` env steps,
+         replans (with warm-start from prior plan tail), repeats until budget
+         or `success_fn` triggers.
     """
 
     def __init__(
         self,
         planner: CEMPlanner,
-        env_factory,  # callable returning a fresh env
-        sub_len: int = 4,
-        k_exec: int | None = None,
-        budget_steps: int = 50,
-        success_fn=None,  # callable(env) -> bool; default: env.is_success()
+        history_size: int = 3,
+        action_block: int = 5,
+        action_dim: int = 2,
+        receding_horizon: int | None = None,
+        budget_env_steps: int = 50,
+        success_fn=None,
     ):
         self.planner = planner
-        self.env_factory = env_factory
-        self.sub_len = sub_len
-        self.k_exec = k_exec if k_exec is not None else planner.horizon
-        self.budget_steps = budget_steps
-        self.success_fn = success_fn or (lambda env: env.is_success())
+        self.history_size = history_size
+        self.action_block = action_block
+        self.action_dim = action_dim
+        self.token_dim = action_block * action_dim
+        self.receding_horizon = receding_horizon if receding_horizon is not None else planner.horizon
+        self.budget_env_steps = budget_env_steps
+        self.success_fn = success_fn
 
-    def run(self, env=None) -> dict:
-        import numpy as np
-        env = env or self.env_factory()
-        obs_history = [env.observe()]
-        # Pad initial history by repeating the first frame.
-        while len(obs_history) < self.sub_len:
-            obs_history.append(obs_history[-1])
+    def run(
+        self,
+        env,
+        z_goal: torch.Tensor,
+        log_diagnostics: bool = True,
+    ) -> dict:
+        device = next(self.planner.model.parameters()).device
+        model = self.planner.model
 
-        states = [env.state()]
-        steps_taken = 0
-        success = False
+        # Phase 0 — bootstrap action/obs history with small random actions
+        action_history_raw: list[np.ndarray] = []
+        obs_history: list[np.ndarray] = [env.observe()]
+        rng = np.random.default_rng(self.planner.seed + 1)
+        warmup_steps = self.history_size * self.action_block
+        for _ in range(warmup_steps):
+            a = rng.uniform(-0.3, 0.3, size=self.action_dim).astype(np.float32)
+            env.step(a)
+            action_history_raw.append(a)
+            obs_history.append(env.observe())
+        env_steps_taken = warmup_steps
 
-        while steps_taken < self.budget_steps:
-            if self.success_fn(env):
-                success = True
+        success_step: int | None = None
+        last_plan_tail: torch.Tensor | None = None
+        diagnostics = {"states": [env.state().copy()],
+                       "predicted_final_costs": []}
+
+        while env_steps_taken < self.budget_env_steps:
+            if self.success_fn is not None and self.success_fn(env):
+                success_step = env_steps_taken
                 break
-            # Build context tensor (sub_len, C, H, W)
-            ctx_imgs = np.stack(obs_history[-self.sub_len :])
-            ctx_imgs = np.transpose(ctx_imgs, (0, 3, 1, 2))
-            ctx = torch.from_numpy(ctx_imgs).float()
 
-            goal_img = env.goal_observation()
-            goal = torch.from_numpy(goal_img).permute(2, 0, 1).float()
+            # Build z_history: encode the obs at strided positions matching training.
+            # Take obs at offsets (env_steps - history_size*block, env_steps - (history_size-1)*block, ..., env_steps).
+            stride_offsets = [env_steps_taken - h * self.action_block for h in range(self.history_size, 0, -1)]
+            ctx_obs = [obs_history[max(0, off)] for off in stride_offsets]
+            ctx_arr = np.stack(ctx_obs)  # (history_size, H, W, C)
+            ctx_t = torch.from_numpy(ctx_arr).permute(0, 3, 1, 2).float().unsqueeze(0).to(device)
+            with torch.no_grad():
+                z_hist = model.encoder(ctx_t)[0]  # (history_size, D)
 
-            plan = self.planner.plan(ctx, goal).cpu().numpy()  # (H, A)
+            # Build a_history: most recent (history_size * action_block) raw actions
+            recent_actions = np.stack(
+                action_history_raw[-self.history_size * self.action_block:]
+            ).astype(np.float32)
+            a_hist = recent_actions.reshape(self.history_size, self.token_dim)
+            a_hist_t = torch.from_numpy(a_hist).to(device)
 
-            # Execute up to k_exec steps
-            for k in range(min(self.k_exec, self.budget_steps - steps_taken)):
-                obs = env.step(plan[k])
-                obs_history.append(obs)
-                states.append(env.state())
-                steps_taken += 1
-                if self.success_fn(env):
-                    success = True
+            # CEM plan (warm-start from prior tail when receding < horizon)
+            mu = self.planner.plan(z_hist, a_hist_t, z_goal, init_action=last_plan_tail)
+            plan_env_actions = self.planner.unroll_plan(
+                mu, self.action_block, self.action_dim
+            )
+
+            # Execute receding_horizon * action_block env steps
+            exec_count = self.receding_horizon * self.action_block
+            steps_to_run = min(exec_count, self.budget_env_steps - env_steps_taken)
+            for k in range(steps_to_run):
+                a = plan_env_actions[k]
+                env.step(a)
+                action_history_raw.append(a.astype(np.float32))
+                obs_history.append(env.observe())
+                env_steps_taken += 1
+                if log_diagnostics:
+                    diagnostics["states"].append(env.state().copy())
+                if self.success_fn is not None and self.success_fn(env):
+                    success_step = env_steps_taken
                     break
-            if success:
+            if success_step is not None:
                 break
+
+            # Warm-start setup
+            if self.receding_horizon < self.planner.horizon:
+                tail = mu[self.receding_horizon:]
+                pad = torch.zeros(self.receding_horizon, self.token_dim,
+                                  device=device, dtype=mu.dtype)
+                last_plan_tail = torch.cat([tail, pad], dim=0)
+            else:
+                last_plan_tail = None
 
         return {
-            "success": success,
-            "steps_taken": steps_taken,
-            "final_state": env.state(),
-            "states": np.stack(states),
+            "success_step": success_step,
+            "env_steps_taken": env_steps_taken,
+            "final_state": env.state().copy(),
+            "final_obs": env.observe(),
+            "diagnostics": diagnostics,
         }

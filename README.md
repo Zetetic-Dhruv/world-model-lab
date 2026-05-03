@@ -4,7 +4,7 @@ A working repository for world-model research aimed at preventing machine errors
 
 ## Experiment 1 — `projects/lewm`
 
-A faithful PyTorch reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero — arXiv:2603.19312, 2026): a stable end-to-end Joint-Embedding Predictive Architecture (JEPA) world model trained from raw pixels.
+Reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero — arXiv:2603.19312, 2026): a stable end-to-end Joint-Embedding Predictive Architecture (JEPA) world model trained from raw pixels.
 
 (Mostly) replicates the canonical mechanism — 2-layer MLP projector with BN-in-middle, separate `pred_proj` for asymmetric projection, full DiT-style AdaLN-zero with multiplicative residual gates, SIGReg with sample-count scaling and trapezoidal Epps–Pulley quadrature, LinearWarmupCosineAnnealingLR. So far, have been using synthetic 2D-particle and MiniPushT environments in that order for experimental iteration. 
 

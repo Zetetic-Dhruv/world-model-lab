@@ -42,6 +42,7 @@ from src.data import (
     generate_trajectories,
     generate_pusht_trajectories,
     generate_weak_policy_trajectories,
+    generate_weak_policy_reacher_trajectories,
     write_canonical_h5,
     split_episodes_by_trajectory,
     PathCStrideDataset,
@@ -156,8 +157,10 @@ def main():
     parser.add_argument("--arch-preset", default=None,
                         choices=["canonical", "small", "tiny"],
                         help="Preset overrides. canonical=paper-default (~18M), small (~5M), tiny (~2M).")
-    parser.add_argument("--env", default="particle", choices=["particle", "pusht"],
-                        help="Synthetic environment: particle (default) or pusht (MiniPushT).")
+    parser.add_argument("--env", default="particle",
+                        choices=["particle", "pusht", "reacher"],
+                        help="Environment: particle (synthetic 2D), pusht (MiniPushT), "
+                             "or reacher (dm_control reacher-easy).")
     parser.add_argument("--bias-strength", type=float, default=0.5,
                         help="MiniPushT only: noisy-walk bias toward block (0=random, 1=greedy).")
     parser.add_argument("--episode-dir", default=None,
@@ -228,21 +231,34 @@ def main():
     if args.path_c:
         # Canonical Path C: WeakPolicy data, stride=5, action_token_dim=10,
         # history_size=3 (max_history=3 for predictor pos_embed).
+        env_tag = args.env if args.env in ("pusht", "reacher") else "pusht"
         h5_path = Path(args.h5_path) if args.h5_path else (
-            Path(args.data_dir) / f"pusht_weakpolicy_n{args.n_episodes}_T{args.path_c_episode_length}.h5"
+            Path(args.data_dir)
+            / f"{env_tag}_weakpolicy_n{args.n_episodes}_T{args.path_c_episode_length}.h5"
         )
         h5_path.parent.mkdir(parents=True, exist_ok=True)
         if not h5_path.exists():
             print(f"[data] generating {args.n_episodes} WeakPolicy trajectories × "
-                  f"{args.path_c_episode_length} env steps...")
-            obs, actions, states = generate_weak_policy_trajectories(
-                MiniPushTEnv,
-                n_episodes=args.n_episodes,
-                length=args.path_c_episode_length,
-                seed=args.seed,
-            )
+                  f"{args.path_c_episode_length} env steps... (env={env_tag})")
+            if env_tag == "reacher":
+                from src.env_reacher import DMReacherEnv
+                obs, actions, states = generate_weak_policy_reacher_trajectories(
+                    DMReacherEnv,
+                    n_episodes=args.n_episodes,
+                    length=args.path_c_episode_length,
+                    seed=args.seed,
+                )
+                env_meta = "DMReacherEasy"
+            else:
+                obs, actions, states = generate_weak_policy_trajectories(
+                    MiniPushTEnv,
+                    n_episodes=args.n_episodes,
+                    length=args.path_c_episode_length,
+                    seed=args.seed,
+                )
+                env_meta = "MiniPushT"
             write_canonical_h5(h5_path, obs, actions, states, obs_as_uint8=True,
-                               metadata={"env": "MiniPushT", "policy": "weak_policy",
+                               metadata={"env": env_meta, "policy": "weak_policy",
                                          "seed": args.seed,
                                          "stride": args.path_c_stride,
                                          "history_size": args.path_c_history})

@@ -4,3 +4,6 @@ numpy>=1.24
 # wandb>=0.16
 # h5py is optional; required only for HDF5TrajectoryDataset (real-data workflows)
 # h5py>=3.0
+# dm_control + mujoco are optional; required only for `--env reacher`
+# dm_control>=1.0
+# mujoco>=3.0

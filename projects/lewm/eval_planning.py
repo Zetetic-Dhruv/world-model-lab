@@ -40,6 +40,18 @@ from src.lewm.model import LeWM
 from src.lewm.planner import CEMPlanner, MPCRunner
 
 
+def make_env(env_name: str, seed: int):
+    """Factory for env-by-name dispatch. Both envs share the same API
+    (reset/step/state/observe/set_state/is_terminated)."""
+    if env_name == "pusht":
+        return MiniPushTEnv(seed=seed)
+    elif env_name == "reacher":
+        from src.env_reacher import DMReacherEnv
+        return DMReacherEnv(seed=seed)
+    else:
+        raise ValueError(f"Unknown env: {env_name}")
+
+
 def load_model(ckpt_path: str, device: torch.device) -> tuple[LeWM, dict]:
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     args = ckpt["args"]
@@ -173,6 +185,9 @@ def main():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--tau-samples", type=int, default=80)
     parser.add_argument("--tau-override", type=float, default=None)
+    parser.add_argument("--env", default="pusht", choices=["pusht", "reacher"],
+                        help="Environment to instantiate from recorded states. "
+                             "Must match the env used to generate the HDF5.")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -240,7 +255,7 @@ def main():
             z_goal = model.encoder(goal_obs_t)[0, 0]  # (D,)
 
         # Set env to init state
-        env = MiniPushTEnv(seed=int(rng.integers(0, 2**31 - 1)))
+        env = make_env(args.env, seed=int(rng.integers(0, 2**31 - 1)))
         env.set_state(init_state)
 
         runner = MPCRunner(
@@ -260,10 +275,18 @@ def main():
             z_final = model.encoder(final_obs_t)[0, 0]
         actual_dist = float((z_final - z_goal).norm().item())
 
-        # Diagnostics
+        # Diagnostics — meaning depends on env state layout
         final_state = result["final_state"]
-        block_recorded_goal_dist = float(np.linalg.norm(final_state[2:4] - goal_state[2:4]))
-        block_target_dist = float(np.linalg.norm(final_state[2:4] - final_state[4:6]))
+        if args.env == "pusht":
+            # MiniPushT state: [agent(2), block(2), target(2)]
+            block_recorded_goal_dist = float(np.linalg.norm(final_state[2:4] - goal_state[2:4]))
+            block_target_dist = float(np.linalg.norm(final_state[2:4] - final_state[4:6]))
+        else:
+            # Reacher state: [qpos(2), to_target(2), qvel(2)]
+            # "block_recorded_goal" analog: joint-angle distance final↔goal
+            # "block_target" analog: tip distance to target (env's old success metric)
+            block_recorded_goal_dist = float(np.linalg.norm(final_state[0:2] - goal_state[0:2]))
+            block_target_dist = float(np.linalg.norm(final_state[2:4]))
 
         success = actual_dist < tau
         if success:
@@ -281,8 +304,10 @@ def main():
         })
         if (ep + 1) % 5 == 0 or ep == args.n_episodes - 1:
             sr = successes / (ep + 1)
+            rec_fmt = f"{block_recorded_goal_dist:.1f}" if args.env == "pusht" \
+                else f"{block_recorded_goal_dist:.3f}"
             print(f"[ep {ep+1:3d}/{args.n_episodes}] traj={e} init={s} goal={sg}  "
-                  f"actual_dist={actual_dist:.3f}  blk_rec={block_recorded_goal_dist:.1f}  "
+                  f"actual_dist={actual_dist:.3f}  rec_goal={rec_fmt}  "
                   f"success={success}  rate={sr:.3f}  ({time.time()-t0:.1f}s)")
 
     sr = successes / args.n_episodes
@@ -291,10 +316,12 @@ def main():
     print(f"  success_rate (latent < τ={tau:.3f}): {sr:.3f}  ({successes}/{args.n_episodes})")
     print(f"  actual_dist:  mean={np.mean(actual_dists):.3f}  med={np.median(actual_dists):.3f}  "
           f"min={np.min(actual_dists):.3f}  max={np.max(actual_dists):.3f}")
-    print(f"  block_recorded_goal_dist (diagnostic): mean={np.mean(block_recorded_goal_dists):.2f}  "
-          f"med={np.median(block_recorded_goal_dists):.2f}")
-    print(f"  block_target_dist (old metric):       mean={np.mean(block_target_dists):.2f}  "
-          f"med={np.median(block_target_dists):.2f}")
+    rec_label = "block_recorded_goal_dist" if args.env == "pusht" else "qpos_to_recorded_goal_dist"
+    tgt_label = "block_target_dist" if args.env == "pusht" else "tip_to_target_dist"
+    print(f"  {rec_label} (diagnostic): mean={np.mean(block_recorded_goal_dists):.3f}  "
+          f"med={np.median(block_recorded_goal_dists):.3f}")
+    print(f"  {tgt_label} (old metric):       mean={np.mean(block_target_dists):.3f}  "
+          f"med={np.median(block_target_dists):.3f}")
     print(f"  τ-calibration: near_mean={tau_info['near_mean']:.3f}  "
           f"unrelated_mean={tau_info['unrelated_mean']:.3f}")
     print(f"  total wallclock: {time.time()-t0:.1f}s")

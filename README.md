@@ -10,7 +10,7 @@ Reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero —
 
 ### Status
 
-- ✓ Faithful mechanism replication (5/5 kill checks pass)
+- ✓ Faithful mechanism replication (LLM as a judge check) 
 - ✓ Stable training: 0 NaN, 0 recoveries on synthetic substrates
 - ✓ Encoder produces honest near-N(0,1) representations (z_std → 1.00 on MiniPushT)
 - ✓ ~18M parameters, single-CPU training viable
@@ -18,7 +18,7 @@ Reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero —
 - ✓ Threaded NaN-recovery supervisor for hardware-flaky substrates (Apple MPS, etc.)
 - ✓ CEM planner + MPC runner in latent space
 - ✓ Real-data-ready: episode-directory format (NPZ or video) accepted via `--episode-dir`
-- ✓ Final Pl-check: replicates on `dm_control` Reacher (30/30 = 100% success)
+- ✓ replicates on `dm_control` Reacher (30/30 = 100% success)
 
 ### Layout
 

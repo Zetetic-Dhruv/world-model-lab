@@ -6,7 +6,7 @@ A working repository for world-model research aimed at preventing machine errors
 
 A faithful PyTorch reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero — arXiv:2603.19312, 2026): a stable end-to-end Joint-Embedding Predictive Architecture (JEPA) world model trained from raw pixels.
 
-Replicates the canonical mechanism — 2-layer MLP projector with BN-in-middle, separate `pred_proj` for asymmetric projection, full DiT-style AdaLN-zero with multiplicative residual gates, SIGReg with sample-count scaling and trapezoidal Epps–Pulley quadrature, LinearWarmupCosineAnnealingLR. Synthetic 2D-particle and MiniPushT environments for attribution-clean iteration. No dependency on `stable-pretraining` or `stable-worldmodel`; everything is in this repo.
+(Mostly) replicates the canonical mechanism — 2-layer MLP projector with BN-in-middle, separate `pred_proj` for asymmetric projection, full DiT-style AdaLN-zero with multiplicative residual gates, SIGReg with sample-count scaling and trapezoidal Epps–Pulley quadrature, LinearWarmupCosineAnnealingLR. So far, have been using synthetic 2D-particle and MiniPushT environments in that order for experimental iteration. 
 
 ### Status
 
@@ -60,7 +60,7 @@ python tools/render_planning_video.py --ckpt runs/pusht/ckpt_epoch9.pt \
     --out runs/planning_demo.mp4 --upscale 4
 ```
 
-### Config (matches official `lucas-maes/le-wm`)
+### Config (mostly matches official `lucas-maes/le-wm`)
 
 | Component | Setting |
 |---|---|
@@ -77,7 +77,7 @@ python tools/render_planning_video.py --ckpt runs/pusht/ckpt_epoch9.pt \
 
 ### Reproduction numbers
 
-**Path C MiniPushT canonical — 500 WeakPolicy episodes × 100 env steps, stride=5, action_block=5, history_size=3, action_token_dim=10, small preset (~10M params), 10 epochs, batch 128, CPU:**
+**MiniPushT synthetic data run (ps you can find video for intuition in the repo) — 500 WeakPolicy episodes × 100 env steps, stride=5, action_block=5, history_size=3, action_token_dim=10, small preset (~10M params), 10 epochs, batch 128, CPU:**
 
 | Metric | Value |
 |---|---|
@@ -89,7 +89,7 @@ python tools/render_planning_video.py --ckpt runs/pusht/ckpt_epoch9.pt \
 | NaN events / recoveries / escalations | 0 / 0 / 0 |
 | Data contact rate (WeakPolicy) | 96% |
 
-**Path C planning eval (30 heldout episodes, canonical CEM: H=5, action_block=5, N=300, K=30, T=30, budget=50 env steps):**
+**planning eval (30 heldout episodes, canonical CEM: H=5, action_block=5, N=300, K=30, T=30, budget=50 env steps):**
 
 | Metric | Value |
 |---|---|
@@ -100,7 +100,7 @@ python tools/render_planning_video.py --ckpt runs/pusht/ckpt_epoch9.pt \
 | Block-to-recorded-goal mean (diagnostic) | 18.96 px |
 | Wallclock (eval) | 180 s (6 s/episode) |
 
-**Earlier 2D-particle run (per-step prediction, no Path C, ~Round 3-10ep, 1050 steps, 10 epochs):**
+**2D-particle run (per-step prediction, ~Round 3-10ep, 1050 steps, 10 epochs):**
 
 | Metric | Value |
 |---|---|
@@ -120,7 +120,7 @@ python tools/render_planning_video.py --ckpt runs/pusht/ckpt_epoch9.pt \
 | Rollout MSE | 0.43× of identity baseline (predictor learns real dynamics) |
 | z_std (post-projector) | 0.90 |
 
-### Kill checks (pre-train assertions)
+### For Claude to follow (or "axioms" if one uses AMRT!) - 
 
 1. Projection has no BN after final Linear (BN-in-middle topology)
 2. SIGReg distinguishes collapsed vs Gaussian by ≥3× and B-scaling holds

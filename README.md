@@ -77,16 +77,38 @@ python tools/render_planning_video.py --ckpt runs/pusht/ckpt_epoch9.pt \
 
 ### Reproduction numbers
 
-**MiniPushT — 500 episodes × 30 steps, 10 epochs, batch 128, CPU:**
+**Path C MiniPushT canonical — 500 WeakPolicy episodes × 100 env steps, stride=5, action_block=5, history_size=3, action_token_dim=10, small preset (~10M params), 10 epochs, batch 128, CPU:**
 
 | Metric | Value |
 |---|---|
-| Wallclock | 48.4 min for 1050 training steps |
-| Final L_pred (training) | 0.020 |
-| Final L_sigreg | 3.12 |
-| z_std (post-projector) | 1.009 (target: N(0,1)) |
-| ‖z‖ mean / std | 13.6 / 0.7 |
+| Wallclock | 5.9 hr for 2840 training steps |
+| Final L_pred (train) | 0.031 |
+| Final L_sigreg | 2.72 |
+| z_std (train) | 1.020 (target: N(0,1)) |
+| Val L_pred / L_identity / P/I | 0.0654 / 0.0522 / 1.25× |
 | NaN events / recoveries / escalations | 0 / 0 / 0 |
+| Data contact rate (WeakPolicy) | 96% |
+
+**Path C planning eval (30 heldout episodes, canonical CEM: H=5, action_block=5, N=300, K=30, T=30, budget=50 env steps):**
+
+| Metric | Value |
+|---|---|
+| **Success rate** (latent τ-match) | **29 / 30 = 96.7%** |
+| τ (p95-near, calibrated) | 11.63 |
+| actual_dist:  mean / median | 1.93 / 0.60 |
+| τ-calibration: near_mean / unrelated_mean | 2.17 / 17.69 (5.8× gap) |
+| Block-to-recorded-goal mean (diagnostic) | 18.96 px |
+| Wallclock (eval) | 180 s (6 s/episode) |
+
+**Earlier 2D-particle run (per-step prediction, no Path C, ~Round 3-10ep, 1050 steps, 10 epochs):**
+
+| Metric | Value |
+|---|---|
+| Wallclock | 51.7 min |
+| Final L_pred | 0.25 |
+| Linear probe R² (x, y) | 0.57 / 0.48 |
+| Rollout MSE | 0.43× of identity baseline |
+| z_std (post-projector) | 0.90 |
 
 **2D-particle — 500 episodes × 30 steps, 10 epochs, batch 128, CPU:**
 

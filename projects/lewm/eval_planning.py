@@ -40,14 +40,18 @@ from src.lewm.model import LeWM
 from src.lewm.planner import CEMPlanner, MPCRunner
 
 
-def make_env(env_name: str, seed: int):
-    """Factory for env-by-name dispatch. Both envs share the same API
-    (reset/step/state/observe/set_state/is_terminated)."""
+def make_env(env_name: str, seed: int, image_size: int = 64):
+    """Factory for env-by-name dispatch. All envs share the same API
+    (reset/step/state/observe/set_state/is_terminated). image_size threads
+    through to whichever kwarg each env uses (`size=` or `image_size=`)."""
     if env_name == "pusht":
-        return MiniPushTEnv(seed=seed)
+        return MiniPushTEnv(seed=seed, size=image_size)
     elif env_name == "reacher":
         from src.env_reacher import DMReacherEnv
-        return DMReacherEnv(seed=seed)
+        return DMReacherEnv(seed=seed, image_size=image_size)
+    elif env_name == "tworoom":
+        from src.env_tworoom import DMTwoRoomEnv
+        return DMTwoRoomEnv(seed=seed, image_size=image_size)
     else:
         raise ValueError(f"Unknown env: {env_name}")
 
@@ -61,7 +65,9 @@ def load_model(ckpt_path: str, device: torch.device) -> tuple[LeWM, dict]:
     else:
         action_dim = 2
     model = LeWM(
-        image_size=64, patch_size=8, in_chans=3,
+        image_size=args.get("image_size", 64),
+        patch_size=args.get("patch_size", 8),
+        in_chans=3,
         vit_dim=args.get("vit_dim", 192),
         encoder_depth=args.get("encoder_depth", 12),
         encoder_heads=args.get("encoder_heads", 3),
@@ -185,9 +191,14 @@ def main():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--tau-samples", type=int, default=80)
     parser.add_argument("--tau-override", type=float, default=None)
-    parser.add_argument("--env", default="pusht", choices=["pusht", "reacher"],
+    parser.add_argument("--env", default="pusht",
+                        choices=["pusht", "reacher", "tworoom"],
                         help="Environment to instantiate from recorded states. "
                              "Must match the env used to generate the HDF5.")
+    parser.add_argument("--image-size", type=int, default=None,
+                        help="Render resolution. Default = ckpt's training image_size "
+                             "(read from saved args). Overriding will mismatch the "
+                             "model unless it's resolution-invariant.")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -195,6 +206,13 @@ def main():
     model, ckpt_args = load_model(args.ckpt, device)
     history_size = ckpt_args.get("path_c_history", 3)
     sub_action_dim = 2
+    # Resolve --image-size: default to ckpt's training resolution
+    ckpt_image_size = ckpt_args.get("image_size", 64)
+    if args.image_size is None:
+        args.image_size = ckpt_image_size
+    elif args.image_size != ckpt_image_size:
+        print(f"[warn] --image-size {args.image_size} != ckpt's {ckpt_image_size}; "
+              f"model is NOT resolution-invariant and will likely error out.")
 
     # Episode splits
     if args.splits is not None and Path(args.splits).exists():
@@ -255,7 +273,8 @@ def main():
             z_goal = model.encoder(goal_obs_t)[0, 0]  # (D,)
 
         # Set env to init state
-        env = make_env(args.env, seed=int(rng.integers(0, 2**31 - 1)))
+        env = make_env(args.env, seed=int(rng.integers(0, 2**31 - 1)),
+                       image_size=args.image_size)
         env.set_state(init_state)
 
         runner = MPCRunner(
@@ -281,12 +300,16 @@ def main():
             # MiniPushT state: [agent(2), block(2), target(2)]
             block_recorded_goal_dist = float(np.linalg.norm(final_state[2:4] - goal_state[2:4]))
             block_target_dist = float(np.linalg.norm(final_state[2:4] - final_state[4:6]))
-        else:
+        elif args.env == "reacher":
             # Reacher state: [qpos(2), to_target(2), qvel(2)]
-            # "block_recorded_goal" analog: joint-angle distance final↔goal
-            # "block_target" analog: tip distance to target (env's old success metric)
             block_recorded_goal_dist = float(np.linalg.norm(final_state[0:2] - goal_state[0:2]))
             block_target_dist = float(np.linalg.norm(final_state[2:4]))
+        else:  # tworoom
+            # TwoRoom state: [agent(2), target(2), door_centers(3*2)]
+            # "recorded_goal" analog: agent position distance final↔recorded
+            # "target" analog: agent-to-target distance (env's old success metric, threshold=16 px)
+            block_recorded_goal_dist = float(np.linalg.norm(final_state[0:2] - goal_state[0:2]))
+            block_target_dist = float(np.linalg.norm(final_state[0:2] - final_state[2:4]))
 
         success = actual_dist < tau
         if success:
@@ -304,8 +327,9 @@ def main():
         })
         if (ep + 1) % 5 == 0 or ep == args.n_episodes - 1:
             sr = successes / (ep + 1)
-            rec_fmt = f"{block_recorded_goal_dist:.1f}" if args.env == "pusht" \
-                else f"{block_recorded_goal_dist:.3f}"
+            # pusht/tworoom are pixel-space (range ~0-200), reacher is rad (range ~0-3)
+            rec_fmt = f"{block_recorded_goal_dist:.3f}" if args.env == "reacher" \
+                else f"{block_recorded_goal_dist:.1f}"
             print(f"[ep {ep+1:3d}/{args.n_episodes}] traj={e} init={s} goal={sg}  "
                   f"actual_dist={actual_dist:.3f}  rec_goal={rec_fmt}  "
                   f"success={success}  rate={sr:.3f}  ({time.time()-t0:.1f}s)")
@@ -316,8 +340,16 @@ def main():
     print(f"  success_rate (latent < τ={tau:.3f}): {sr:.3f}  ({successes}/{args.n_episodes})")
     print(f"  actual_dist:  mean={np.mean(actual_dists):.3f}  med={np.median(actual_dists):.3f}  "
           f"min={np.min(actual_dists):.3f}  max={np.max(actual_dists):.3f}")
-    rec_label = "block_recorded_goal_dist" if args.env == "pusht" else "qpos_to_recorded_goal_dist"
-    tgt_label = "block_target_dist" if args.env == "pusht" else "tip_to_target_dist"
+    rec_label = {
+        "pusht": "block_recorded_goal_dist",
+        "reacher": "qpos_to_recorded_goal_dist",
+        "tworoom": "agent_to_recorded_goal_dist",
+    }[args.env]
+    tgt_label = {
+        "pusht": "block_target_dist",
+        "reacher": "tip_to_target_dist",
+        "tworoom": "agent_to_target_dist",
+    }[args.env]
     print(f"  {rec_label} (diagnostic): mean={np.mean(block_recorded_goal_dists):.3f}  "
           f"med={np.median(block_recorded_goal_dists):.3f}")
     print(f"  {tgt_label} (old metric):       mean={np.mean(block_target_dists):.3f}  "

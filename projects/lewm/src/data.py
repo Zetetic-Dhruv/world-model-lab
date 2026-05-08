@@ -153,6 +153,63 @@ def generate_weak_policy_reacher_trajectories(
     )
 
 
+def generate_expert_tworoom_trajectories(
+    env_fn: Callable,
+    n_episodes: int = 500,
+    length: int = 100,
+    action_dim: int = 2,
+    action_noise: float = 2.0,
+    action_repeat_prob: float = 0.05,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Canonical TwoRoom data generator — uses official ExpertPolicy.
+
+    Mirrors `scripts/data/collect_tworooms.py` from `stable_worldmodel`
+    (Maes et al., MIT 2026): same expert policy, same action_noise=2.0,
+    action_repeat_prob=0.05. We do NOT reimplement the policy; it is imported
+    via `src.env_tworoom.expert_policy_tworoom` which wraps the canonical
+    `stable_worldmodel.envs.two_room.ExpertPolicy`.
+
+    Differences from canonical collection:
+      - Different number of trajectories (canonical: 10000, we default: 500)
+      - Different episode length (canonical: 100, we default: 100 — matches)
+      - Different storage format (we use our HDF5 schema, canonical uses .lance)
+
+    Returns (obs, actions, states) with shapes
+        obs:     (E, T, H, W, C) float32 in [0, 1]
+        actions: (E, T, action_dim) float32
+        states:  (E, T, state_dim) float32   state_dim=10
+    """
+    from .env_tworoom import expert_policy_tworoom
+    rng = np.random.default_rng(seed)
+    obs_traj, act_traj, state_traj = [], [], []
+    for _ in range(n_episodes):
+        env = env_fn(seed=int(rng.integers(0, 2**31 - 1)))
+        obs = [env.reset()]
+        states = [env.state()]
+        actions = []
+        policy = expert_policy_tworoom(
+            env, rng,
+            action_noise=action_noise,
+            action_repeat_prob=action_repeat_prob,
+        )
+        for _ in range(length - 1):
+            a = policy(env.state(), rng)
+            o = env.step(a)
+            obs.append(o)
+            actions.append(a)
+            states.append(env.state())
+        actions.append(actions[-1].copy())  # rectangular pad
+        obs_traj.append(np.stack(obs))
+        act_traj.append(np.stack(actions))
+        state_traj.append(np.stack(states))
+    return (
+        np.stack(obs_traj).astype(np.float32),
+        np.stack(act_traj).astype(np.float32),
+        np.stack(state_traj).astype(np.float32),
+    )
+
+
 def generate_pusht_trajectories(
     env_fn: Callable,
     n_episodes: int = 1000,

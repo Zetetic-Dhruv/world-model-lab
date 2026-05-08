@@ -43,6 +43,7 @@ from src.data import (
     generate_pusht_trajectories,
     generate_weak_policy_trajectories,
     generate_weak_policy_reacher_trajectories,
+    generate_expert_tworoom_trajectories,
     write_canonical_h5,
     split_episodes_by_trajectory,
     PathCStrideDataset,
@@ -130,7 +131,7 @@ def main():
     parser.add_argument("--num-projections", type=int, default=1024)
     parser.add_argument("--sigreg-knots", type=int, default=17)
     parser.add_argument("--warmup-fraction", type=float, default=0.01,
-                        help="Round 3 canonical = 1%.")
+                        help="Round 3 canonical = 1%%.")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--log-every", type=int, default=25)
@@ -158,9 +159,21 @@ def main():
                         choices=["canonical", "small", "tiny"],
                         help="Preset overrides. canonical=paper-default (~18M), small (~5M), tiny (~2M).")
     parser.add_argument("--env", default="particle",
-                        choices=["particle", "pusht", "reacher"],
+                        choices=["particle", "pusht", "reacher", "tworoom"],
                         help="Environment: particle (synthetic 2D), pusht (MiniPushT), "
-                             "or reacher (dm_control reacher-easy).")
+                             "reacher (dm_control reacher-easy), or "
+                             "tworoom (canonical swm/TwoRoom-v1 from stable_worldmodel).")
+    parser.add_argument("--image-size", type=int, default=64,
+                        help="Render resolution for ALL envs (default 64). "
+                             "For tworoom, env renders at canonical 224 internally and "
+                             "we resize post-render. For other envs, env renders at "
+                             "this resolution natively.")
+    parser.add_argument("--patch-size", default="8",
+                        help="ViT patch size (default 8 for backward compat). "
+                             "Set to 'auto' for a constant 16×16 patch grid "
+                             "(patch_size = image_size // 16) — recommended for "
+                             "the resolution sweep so token count and attention "
+                             "compute stay constant across cells.")
     parser.add_argument("--bias-strength", type=float, default=0.5,
                         help="MiniPushT only: noisy-walk bias toward block (0=random, 1=greedy).")
     parser.add_argument("--episode-dir", default=None,
@@ -186,6 +199,17 @@ def main():
                              "--val-fraction is ignored and this dir is used wholesale as the "
                              "validation set.")
     args = parser.parse_args()
+
+    # Resolve --patch-size 'auto' -> image_size // 16 (constant 16×16 grid)
+    if str(args.patch_size).lower() == "auto":
+        args.patch_size = max(1, args.image_size // 16)
+    else:
+        args.patch_size = int(args.patch_size)
+    if args.image_size % args.patch_size != 0:
+        raise SystemExit(
+            f"--image-size ({args.image_size}) must be divisible by "
+            f"--patch-size ({args.patch_size}); use 'auto' for a 16×16 grid."
+        )
 
     if args.smoke:
         args.n_episodes = 50
@@ -229,39 +253,63 @@ def main():
     val_ds = None
 
     if args.path_c:
-        # Canonical Path C: WeakPolicy data, stride=5, action_token_dim=10,
+        # Canonical Path C: data, stride=5, action_token_dim=10,
         # history_size=3 (max_history=3 for predictor pos_embed).
-        env_tag = args.env if args.env in ("pusht", "reacher") else "pusht"
+        env_tag = args.env if args.env in ("pusht", "reacher", "tworoom") else "pusht"
+        # TwoRoom uses canonical ExpertPolicy; pusht/reacher use WeakPolicy.
+        policy_tag = "expert" if env_tag == "tworoom" else "weakpolicy"
+        # Cache filename suffix: include image_size only when != 64 (preserves
+        # backward compat for existing 64×64 caches).
+        size_tag = f"_img{args.image_size}" if args.image_size != 64 else ""
         h5_path = Path(args.h5_path) if args.h5_path else (
             Path(args.data_dir)
-            / f"{env_tag}_weakpolicy_n{args.n_episodes}_T{args.path_c_episode_length}.h5"
+            / f"{env_tag}_{policy_tag}_n{args.n_episodes}_T{args.path_c_episode_length}{size_tag}.h5"
         )
         h5_path.parent.mkdir(parents=True, exist_ok=True)
         if not h5_path.exists():
-            print(f"[data] generating {args.n_episodes} WeakPolicy trajectories × "
-                  f"{args.path_c_episode_length} env steps... (env={env_tag})")
+            print(f"[data] generating {args.n_episodes} trajectories × "
+                  f"{args.path_c_episode_length} env steps "
+                  f"@ {args.image_size}×{args.image_size}... "
+                  f"(env={env_tag} policy={policy_tag})")
             if env_tag == "reacher":
                 from src.env_reacher import DMReacherEnv
+                def _make_reacher(seed):
+                    return DMReacherEnv(seed=seed, image_size=args.image_size)
                 obs, actions, states = generate_weak_policy_reacher_trajectories(
-                    DMReacherEnv,
+                    _make_reacher,
                     n_episodes=args.n_episodes,
                     length=args.path_c_episode_length,
                     seed=args.seed,
                 )
-                env_meta = "DMReacherEasy"
+                env_meta = f"DMReacherEasy@{args.image_size}"
+            elif env_tag == "tworoom":
+                from src.env_tworoom import DMTwoRoomEnv
+                def _make_tworoom(seed):
+                    return DMTwoRoomEnv(seed=seed, image_size=args.image_size)
+                obs, actions, states = generate_expert_tworoom_trajectories(
+                    _make_tworoom,
+                    n_episodes=args.n_episodes,
+                    length=args.path_c_episode_length,
+                    seed=args.seed,
+                )
+                env_meta = f"swm/TwoRoom-v1@{args.image_size}"
             else:
+                def _make_pusht(seed):
+                    return MiniPushTEnv(seed=seed, size=args.image_size)
                 obs, actions, states = generate_weak_policy_trajectories(
-                    MiniPushTEnv,
+                    _make_pusht,
                     n_episodes=args.n_episodes,
                     length=args.path_c_episode_length,
                     seed=args.seed,
                 )
-                env_meta = "MiniPushT"
+                env_meta = f"MiniPushT@{args.image_size}"
             write_canonical_h5(h5_path, obs, actions, states, obs_as_uint8=True,
-                               metadata={"env": env_meta, "policy": "weak_policy",
+                               metadata={"env": env_meta, "policy": policy_tag,
                                          "seed": args.seed,
                                          "stride": args.path_c_stride,
-                                         "history_size": args.path_c_history})
+                                         "history_size": args.path_c_history,
+                                         "image_size": args.image_size,
+                                         "patch_size": args.patch_size})
             print(f"[data] wrote {h5_path}")
         else:
             print(f"[data] using cached {h5_path.name}")
@@ -309,8 +357,10 @@ def main():
             print(f"[val ] episodes={len(val_ds.episodes)}")
     else:
         env_tag = args.env
+        size_tag = f"_img{args.image_size}" if args.image_size != 64 else ""
         data_path = Path(args.data_dir) / (
-            f"{env_tag}_n{args.n_episodes}_T{args.episode_length}_seed{args.seed}.npz"
+            f"{env_tag}_n{args.n_episodes}_T{args.episode_length}"
+            f"_seed{args.seed}{size_tag}.npz"
         )
         data_path.parent.mkdir(parents=True, exist_ok=True)
         if data_path.exists():
@@ -319,16 +369,20 @@ def main():
             print(f"[data] loaded {data_path.name}: obs={obs.shape}")
         else:
             print(f"[data] generating {args.n_episodes} eps × len {args.episode_length} "
-                  f"(env={env_tag})")
+                  f"@ {args.image_size}×{args.image_size} (env={env_tag})")
             if env_tag == "particle":
+                def _make_particle(seed):
+                    return ParticleEnv(seed=seed, size=args.image_size)
                 obs, actions, states = generate_trajectories(
-                    ParticleEnv,
+                    _make_particle,
                     n_episodes=args.n_episodes, length=args.episode_length,
                     action_dim=2, seed=args.seed,
                 )
             else:
+                def _make_pusht(seed):
+                    return MiniPushTEnv(seed=seed, size=args.image_size)
                 obs, actions, states = generate_pusht_trajectories(
-                    MiniPushTEnv,
+                    _make_pusht,
                     n_episodes=args.n_episodes, length=args.episode_length,
                     action_dim=2, bias_strength=args.bias_strength, seed=args.seed,
                 )
@@ -377,8 +431,8 @@ def main():
 
     # ---------------------------------------------------------------- Model
     model = LeWM(
-        image_size=64,
-        patch_size=8,
+        image_size=args.image_size,
+        patch_size=args.patch_size,
         in_chans=3,
         vit_dim=args.vit_dim,
         encoder_depth=args.encoder_depth,

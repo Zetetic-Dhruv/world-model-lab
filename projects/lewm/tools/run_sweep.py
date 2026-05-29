@@ -134,29 +134,32 @@ def run_cell(env, image_size, args, cell, project_dir):
     h5_path = (project_dir / "data" /
                f"{env}_{policy_tag}_n{args.n_episodes}_T{args.episode_length}{size_tag}.h5")
 
-    # ---------------- 2. Eval ----------------
-    eval_cmd = [
-        py, "-u", "eval_planning.py",
-        "--ckpt", str(final_ckpt),
-        "--h5", str(h5_path),
-        "--splits", str(cell / "splits.npz"),
-        "--n-episodes", str(args.eval_episodes),
-        "--tau-samples", "80",
-        "--seed", "2026",
-        "--device", args.device,
-        "--env", env,
-    ]
-    t0 = time.time()
-    print(f"[sweep] {env}@{image_size}: eval...", flush=True)
-    with open(log_path, "a") as logf:
-        logf.write(f"\n# {' '.join(eval_cmd)}\n")
-        logf.flush()
-        result = subprocess.run(
-            eval_cmd, cwd=project_dir, stdout=logf, stderr=subprocess.STDOUT,
-            check=False, env={**__import__("os").environ, "PYTHONUNBUFFERED": "1"},
-        )
-    info["wallclock_eval_s"] = time.time() - t0
-    info["eval_ok"] = (result.returncode == 0)
+    # ---------------- 2. Eval (optional) ----------------
+    if args.skip_eval:
+        info["eval_ok"] = None  # skipped
+    else:
+        eval_cmd = [
+            py, "-u", "eval_planning.py",
+            "--ckpt", str(final_ckpt),
+            "--h5", str(h5_path),
+            "--splits", str(cell / "splits.npz"),
+            "--n-episodes", str(args.eval_episodes),
+            "--tau-samples", "80",
+            "--seed", "2026",
+            "--device", args.device,
+            "--env", env,
+        ]
+        t0 = time.time()
+        print(f"[sweep] {env}@{image_size}: eval...", flush=True)
+        with open(log_path, "a") as logf:
+            logf.write(f"\n# {' '.join(eval_cmd)}\n")
+            logf.flush()
+            result = subprocess.run(
+                eval_cmd, cwd=project_dir, stdout=logf, stderr=subprocess.STDOUT,
+                check=False, env={**__import__("os").environ, "PYTHONUNBUFFERED": "1"},
+            )
+        info["wallclock_eval_s"] = time.time() - t0
+        info["eval_ok"] = (result.returncode == 0)
 
     # ---------------- 3. Diagnostics ----------------
     diag_cmd = [
@@ -290,6 +293,11 @@ def main():
                         help="Skip cells, just aggregate existing results.")
     parser.add_argument("--per-cell-min-estimate", type=int, default=90,
                         help="Wallclock estimate per cell in minutes (default 90).")
+    parser.add_argument("--skip-eval", action="store_true",
+                        help="Skip the CEM planning eval (which steps the live env "
+                             "and needs dm_control). Diagnostics (rank/MI) only need "
+                             "pre-recorded h5 obs, so the convergence-trajectory study "
+                             "runs without any env dependency on the host.")
     parser.add_argument("--keep-ckpt-epochs", default="",
                         help="Comma-separated 0-indexed checkpoint epochs to KEEP and "
                              "run diagnostics on, for convergence-trajectory experiments "

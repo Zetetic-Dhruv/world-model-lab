@@ -108,9 +108,25 @@ def run_cell(env, image_size, args, cell, project_dir):
         info["stage"] = "train_no_ckpt"
         return info
     final_ckpt = ckpts[-1]
-    # Cleanup: keep only final ckpt to save disk
-    for c in ckpts[:-1]:
-        c.unlink()
+    # Determine checkpoints to keep. Final always kept. For trajectory
+    # experiments, also keep the requested 0-indexed epochs (clamped to range).
+    keep_epochs = set()
+    if args.keep_ckpt_epochs.strip():
+        max_epoch = int(final_ckpt.stem.replace("ckpt_epoch", ""))
+        for tok in args.keep_ckpt_epochs.split(","):
+            tok = tok.strip()
+            if tok:
+                keep_epochs.add(min(int(tok), max_epoch))
+    kept_ckpts = []
+    for c in ckpts:
+        e = int(c.stem.replace("ckpt_epoch", ""))
+        if c == final_ckpt or e in keep_epochs:
+            kept_ckpts.append(c)
+        else:
+            c.unlink()
+    info["kept_ckpt_epochs"] = sorted(
+        int(c.stem.replace("ckpt_epoch", "")) for c in kept_ckpts
+    )
 
     # Determine h5 path
     size_tag = f"_img{image_size}" if image_size != 64 else ""
@@ -167,6 +183,40 @@ def run_cell(env, image_size, args, cell, project_dir):
         info["stage"] = "diagnostics"
         return info
 
+    # ---------------- 4. Trajectory diagnostics (optional) ----------------
+    # Run diagnostics on each kept non-final checkpoint → diagnostics_epoch{N}.json
+    # so we can plot rank(epoch) / MI(epoch) and discriminate H1/H2/H3.
+    traj_epochs = [e for e in info.get("kept_ckpt_epochs", [])
+                   if e != int(final_ckpt.stem.replace("ckpt_epoch", ""))]
+    if traj_epochs:
+        t0 = time.time()
+        print(f"[sweep] {env}@{image_size}: trajectory diagnostics "
+              f"({len(traj_epochs)} checkpoints)...", flush=True)
+        for e in traj_epochs:
+            ck = cell / f"ckpt_epoch{e}.pt"
+            traj_cmd = [
+                py, "-u", "tools/run_diagnostics.py",
+                "--ckpt", str(ck),
+                "--h5", str(h5_path),
+                "--splits", str(cell / "splits.npz"),
+                "--out", str(cell / f"diagnostics_epoch{e}.json"),
+                "--n-samples", str(args.diag_samples),
+                "--device", args.device,
+            ]
+            with open(log_path, "a") as logf:
+                logf.write(f"\n# {' '.join(traj_cmd)}\n")
+                logf.flush()
+                r = subprocess.run(
+                    traj_cmd, cwd=project_dir, stdout=logf,
+                    stderr=subprocess.STDOUT, check=False,
+                    env={**__import__("os").environ, "PYTHONUNBUFFERED": "1"},
+                )
+            if r.returncode != 0:
+                info["status"] = "failed"
+                info["stage"] = f"trajectory_diagnostics_epoch{e}"
+                return info
+        info["wallclock_trajectory_s"] = time.time() - t0
+
     info["status"] = "ok"
     return info
 
@@ -196,6 +246,20 @@ def aggregate(out_dir: Path, envs, resolutions) -> Path:
                         / max(tau_info.get("near_mean", 1.0), 1e-9)
                     ),
                 }
+            # Convergence trajectory: collect diagnostics_epoch{N}.json (if any)
+            traj = []
+            for tp in sorted(cell.glob("diagnostics_epoch*.json"),
+                             key=lambda p: int(p.stem.replace("diagnostics_epoch", ""))):
+                epoch = int(tp.stem.replace("diagnostics_epoch", ""))
+                d = json.loads(tp.read_text())
+                traj.append({"ckpt_epoch": epoch, "metrics": d.get("metrics", {})})
+            # Append the final-checkpoint diagnostics as the trajectory endpoint
+            # (final ckpt epoch isn't stored in diagnostics.json; tag as 'final')
+            if traj and "diagnostics" in row:
+                traj.append({"ckpt_epoch": "final",
+                             "metrics": row["diagnostics"].get("metrics", {})})
+            if traj:
+                row["trajectory"] = traj
             rows.append(row)
     out_path = out_dir / "sweep_results.json"
     out_path.write_text(json.dumps(rows, indent=2))
@@ -226,6 +290,12 @@ def main():
                         help="Skip cells, just aggregate existing results.")
     parser.add_argument("--per-cell-min-estimate", type=int, default=90,
                         help="Wallclock estimate per cell in minutes (default 90).")
+    parser.add_argument("--keep-ckpt-epochs", default="",
+                        help="Comma-separated 0-indexed checkpoint epochs to KEEP and "
+                             "run diagnostics on, for convergence-trajectory experiments "
+                             "(e.g. '4,9,19,39,69,99'). Each kept ckpt gets a "
+                             "diagnostics_epoch{N}.json. Empty = keep only final ckpt "
+                             "(default behavior). The final ckpt is always kept.")
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir).resolve()

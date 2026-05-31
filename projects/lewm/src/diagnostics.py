@@ -212,10 +212,11 @@ def twonn_intrinsic_dim(X: np.ndarray, fraction: float = 0.9) -> float:
 def state_decoding_probe(
     Z: np.ndarray,
     S: np.ndarray,
+    groups: np.ndarray | None = None,
     test_frac: float = 0.3,
     seed: int = 0,
     mlp_hidden: int = 256,
-    mlp_iter: int = 400,
+    mlp_iter: int = 500,
     ridge_alpha: float = 1.0,
 ) -> dict:
     """Decode ground-truth state S from frozen latent Z via linear + MLP probes.
@@ -241,33 +242,46 @@ def state_decoding_probe(
     from sklearn.linear_model import Ridge
     from sklearn.neural_network import MLPRegressor
     from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import train_test_split, GroupShuffleSplit
     from sklearn.metrics import r2_score
 
     Z = np.asarray(Z, dtype=np.float64)
     S = np.asarray(S, dtype=np.float64)
-    mask = np.isfinite(Z).all(axis=1) & np.isfinite(S).all(axis=1)
-    Z, S = Z[mask], S[mask]
+    finite = np.isfinite(Z).all(axis=1) & np.isfinite(S).all(axis=1)
+    Z, S = Z[finite], S[finite]
+    grp = np.asarray(groups)[finite] if groups is not None else None
     if len(Z) < 20:
         return {"probe_linear_r2": float("nan"), "probe_mlp_r2": float("nan"),
-                "probe_linear_r2_per_dim": [], "probe_mlp_r2_per_dim": []}
+                "probe_linear_r2_per_dim": [], "probe_mlp_r2_per_dim": [],
+                "probe_split": "none"}
 
-    Ztr, Zte, Str, Ste = train_test_split(Z, S, test_size=test_frac, random_state=seed)
+    # CRITICAL: split by EPISODE (trajectory) when groups given. Frame-level split
+    # leaks autocorrelated within-trajectory structure → inflated/contestable R².
+    if grp is not None and len(np.unique(grp)) >= 4:
+        gss = GroupShuffleSplit(n_splits=1, test_size=test_frac, random_state=seed)
+        tr, te = next(gss.split(Z, S, groups=grp))
+        Ztr, Zte, Str, Ste = Z[tr], Z[te], S[tr], S[te]
+        split_kind = "trajectory"
+    else:
+        Ztr, Zte, Str, Ste = train_test_split(Z, S, test_size=test_frac,
+                                              random_state=seed)
+        split_kind = "frame_FALLBACK"  # flagged: contestable, sanity-only
+
     zsc = StandardScaler().fit(Ztr)
     Ztr_, Zte_ = zsc.transform(Ztr), zsc.transform(Zte)
-    # Standardize targets so overall R² weights dims equally-ish (variance_weighted
-    # on standardized targets ≈ uniform); keep raw per-dim for interpretability.
     ssc = StandardScaler().fit(Str)
     Str_, Ste_ = ssc.transform(Str), ssc.transform(Ste)
 
-    out: dict = {}
+    out: dict = {"probe_split": split_kind}
     lin = Ridge(alpha=ridge_alpha).fit(Ztr_, Str_)
     p = lin.predict(Zte_)
     out["probe_linear_r2"] = float(r2_score(Ste_, p))
     out["probe_linear_r2_per_dim"] = [float(x) for x in
                                       r2_score(Ste_, p, multioutput="raw_values")]
+    # Fixed capacity + fixed budget (early_stopping OFF → identical budget across
+    # cells; we measure encoding quality, not data-dependent probe-fitting effort).
     mlp = MLPRegressor(hidden_layer_sizes=(mlp_hidden,), max_iter=mlp_iter,
-                       random_state=seed, early_stopping=True).fit(Ztr_, Str_)
+                       random_state=seed, early_stopping=False).fit(Ztr_, Str_)
     p = mlp.predict(Zte_)
     out["probe_mlp_r2"] = float(r2_score(Ste_, p))
     out["probe_mlp_r2_per_dim"] = [float(x) for x in
@@ -283,6 +297,7 @@ def diagnostic_suite(
     Z: np.ndarray,
     env_state: np.ndarray | None = None,
     Z_next: np.ndarray | None = None,
+    groups: np.ndarray | None = None,
     pca_dim_for_twonn: int = 16,
     ksg_k: int = 3,
 ) -> dict:
@@ -319,7 +334,8 @@ def diagnostic_suite(
         # Geometry-robust corroboration of MI(Z; state): decoding probe R².
         # Uses FULL latent Z (probes handle high-D fine; standardization removes
         # the scale/anisotropy confound that corrupts KSG over training).
-        out.update(state_decoding_probe(Z, env_state))
+        # groups = per-sample episode id → trajectory-level split (no frame leakage).
+        out.update(state_decoding_probe(Z, env_state, groups=groups))
 
     if Z_next is not None:
         Zn_centered = Z_next - Z_next.mean(axis=0, keepdims=True)

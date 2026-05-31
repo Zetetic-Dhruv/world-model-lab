@@ -87,10 +87,11 @@ def extract_latent_pairs(
     batch_size: int = 64,
     seed: int = 0,
 ):
-    """Sample (Z_t, Z_{t+stride}, env_state_t) triples from val episodes.
+    """Sample (Z_t, Z_{t+stride}, env_state_t, episode_id) tuples from val episodes.
 
-    Returns: (Z, Z_next, env_state) with shapes (N, latent_dim), (N, latent_dim),
-    (N, state_dim).
+    Returns: (Z, Z_next, env_state, episode_ids) — episode_ids is the per-sample
+    trajectory id so the decoding probe can split train/test by EPISODE (no frame
+    leakage).
     """
     rng = np.random.default_rng(seed)
     with h5py.File(h5_path, "r") as f:
@@ -139,7 +140,8 @@ def extract_latent_pairs(
             Z_next_list.append(z_next)
     Z = np.concatenate(Z_list, axis=0)
     Z_next = np.concatenate(Z_next_list, axis=0)
-    return Z, Z_next, state_t
+    episode_ids = e_samples.astype(np.int64)
+    return Z, Z_next, state_t, episode_ids
 
 
 def main():
@@ -165,13 +167,16 @@ def main():
     stride = int(ckpt_args.get("path_c_stride", 5))
 
     print(f"[diag] extracting {args.n_samples} latent triples (stride={stride})...")
-    Z, Z_next, env_state = extract_latent_pairs(
+    Z, Z_next, env_state, episode_ids = extract_latent_pairs(
         model, args.h5, val_eps, stride, args.n_samples, device, seed=args.seed,
     )
-    print(f"[diag] Z={Z.shape}  Z_next={Z_next.shape}  env_state={env_state.shape}")
+    n_eps = len(np.unique(episode_ids))
+    print(f"[diag] Z={Z.shape}  env_state={env_state.shape}  "
+          f"({n_eps} unique episodes → trajectory-level probe split)")
 
     print("[diag] running diagnostic_suite...")
-    metrics = diagnostic_suite(Z, env_state=env_state, Z_next=Z_next)
+    metrics = diagnostic_suite(Z, env_state=env_state, Z_next=Z_next,
+                               groups=episode_ids)
 
     output = {
         "ckpt": str(args.ckpt),
@@ -183,8 +188,9 @@ def main():
         "env": str(ckpt_args.get("env", "unknown")),
         "Z_dim": int(Z.shape[1]),
         "state_dim": int(env_state.shape[1]),
-        # metrics may contain floats OR lists (per-dim probe R²) — preserve both
+        # metrics may contain floats, lists (per-dim R²), OR strings (probe_split)
         "metrics": {k: (list(map(float, v)) if isinstance(v, (list, tuple))
+                        else v if isinstance(v, str)
                         else float(v)) for k, v in metrics.items()},
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -194,6 +200,8 @@ def main():
     for k, v in metrics.items():
         if isinstance(v, (list, tuple)):
             print(f"  {k}: [{', '.join(f'{x:.3f}' for x in v)}]")
+        elif isinstance(v, str):
+            print(f"  {k}: {v}")
         else:
             print(f"  {k}: {v:.4f}")
 

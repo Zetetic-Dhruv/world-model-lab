@@ -183,14 +183,19 @@ def main():
         "env": str(ckpt_args.get("env", "unknown")),
         "Z_dim": int(Z.shape[1]),
         "state_dim": int(env_state.shape[1]),
-        "metrics": {k: float(v) for k, v in metrics.items()},
+        # metrics may contain floats OR lists (per-dim probe R²) — preserve both
+        "metrics": {k: (list(map(float, v)) if isinstance(v, (list, tuple))
+                        else float(v)) for k, v in metrics.items()},
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w") as f:
         json.dump(output, f, indent=2)
     print(f"[diag] saved → {args.out}")
     for k, v in metrics.items():
-        print(f"  {k}: {v:.4f}")
+        if isinstance(v, (list, tuple)):
+            print(f"  {k}: [{', '.join(f'{x:.3f}' for x in v)}]")
+        else:
+            print(f"  {k}: {v:.4f}")
 
 
 if __name__ == "__main__":

@@ -206,6 +206,76 @@ def twonn_intrinsic_dim(X: np.ndarray, fraction: float = 0.9) -> float:
 
 
 # ---------------------------------------------------------------------------
+# 4. State-decoding probe — geometry-robust alternative to KSG MI(Z; state)
+# ---------------------------------------------------------------------------
+
+def state_decoding_probe(
+    Z: np.ndarray,
+    S: np.ndarray,
+    test_frac: float = 0.3,
+    seed: int = 0,
+    mlp_hidden: int = 256,
+    mlp_iter: int = 400,
+    ridge_alpha: float = 1.0,
+) -> dict:
+    """Decode ground-truth state S from frozen latent Z via linear + MLP probes.
+
+    WHY this exists: KSG MI(Z; S) on a ~200-dim joint space is badly biased and
+    sample-hungry, AND the anti-collapse (SIGReg) regularizer shifts the latent's
+    scale/anisotropy over training — which moves k-NN distances and therefore the
+    KSG estimate *independent of any change in true information*. A 0.2-nat drift
+    is exactly estimator-artifact-sized. A decoding probe is a variational lower
+    bound on MI(Z; S), is interpretable to a control audience, and is invariant to
+    latent scale/anisotropy (Z is standardized before fitting). If the probe-R²
+    trajectory reproduces a KSG-MI trend, the trend is real; if not, it was geometry.
+
+    Both probes are trained on a train split and scored (R²) on a held-out split.
+    Per-dimension R² is reported too — for Reacher state [qpos(2), to_target(2),
+    qvel(2)], velocity dims may be poorly decodable from a single-frame latent,
+    which is itself informative.
+
+    Returns JSON-friendly dict:
+      probe_linear_r2, probe_mlp_r2 (overall, multioutput-variance-weighted),
+      probe_linear_r2_per_dim, probe_mlp_r2_per_dim (lists).
+    """
+    from sklearn.linear_model import Ridge
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score
+
+    Z = np.asarray(Z, dtype=np.float64)
+    S = np.asarray(S, dtype=np.float64)
+    mask = np.isfinite(Z).all(axis=1) & np.isfinite(S).all(axis=1)
+    Z, S = Z[mask], S[mask]
+    if len(Z) < 20:
+        return {"probe_linear_r2": float("nan"), "probe_mlp_r2": float("nan"),
+                "probe_linear_r2_per_dim": [], "probe_mlp_r2_per_dim": []}
+
+    Ztr, Zte, Str, Ste = train_test_split(Z, S, test_size=test_frac, random_state=seed)
+    zsc = StandardScaler().fit(Ztr)
+    Ztr_, Zte_ = zsc.transform(Ztr), zsc.transform(Zte)
+    # Standardize targets so overall R² weights dims equally-ish (variance_weighted
+    # on standardized targets ≈ uniform); keep raw per-dim for interpretability.
+    ssc = StandardScaler().fit(Str)
+    Str_, Ste_ = ssc.transform(Str), ssc.transform(Ste)
+
+    out: dict = {}
+    lin = Ridge(alpha=ridge_alpha).fit(Ztr_, Str_)
+    p = lin.predict(Zte_)
+    out["probe_linear_r2"] = float(r2_score(Ste_, p))
+    out["probe_linear_r2_per_dim"] = [float(x) for x in
+                                      r2_score(Ste_, p, multioutput="raw_values")]
+    mlp = MLPRegressor(hidden_layer_sizes=(mlp_hidden,), max_iter=mlp_iter,
+                       random_state=seed, early_stopping=True).fit(Ztr_, Str_)
+    p = mlp.predict(Zte_)
+    out["probe_mlp_r2"] = float(r2_score(Ste_, p))
+    out["probe_mlp_r2_per_dim"] = [float(x) for x in
+                                   r2_score(Ste_, p, multioutput="raw_values")]
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Bundled diagnostic suite (JSON-friendly outputs)
 # ---------------------------------------------------------------------------
 
@@ -246,6 +316,10 @@ def diagnostic_suite(
         out["env_state_twonn_intrinsic_dim"] = twonn_intrinsic_dim(env_state)
         out["env_state_effective_rank_pr"] = effective_rank_pr(env_state)
         out["mi_z_envstate_nats"] = ksg_mi(Z_reduced, env_state, k=ksg_k)
+        # Geometry-robust corroboration of MI(Z; state): decoding probe R².
+        # Uses FULL latent Z (probes handle high-D fine; standardization removes
+        # the scale/anisotropy confound that corrupts KSG over training).
+        out.update(state_decoding_probe(Z, env_state))
 
     if Z_next is not None:
         Zn_centered = Z_next - Z_next.mean(axis=0, keepdims=True)
@@ -294,13 +368,26 @@ def _sanity_check():
     print(f"  3-D embedded in 10-D:   d={twonn_intrinsic_dim(X_3d_in_10d):.2f}  (expect ~3)")
     print(f"  8-D Gaussian:           d={twonn_intrinsic_dim(X_8d):.2f}  (expect ~8)")
 
+    print("\n=== state_decoding_probe ===")
+    # Z that linearly encodes a 6-d state (+ noise) → high R²; independent → ~0
+    N = 2000
+    S_true = rng.standard_normal((N, 6))
+    W = rng.standard_normal((6, 192))
+    Z_enc = S_true @ W + rng.standard_normal((N, 192)) * 0.5  # state recoverable
+    Z_ind = rng.standard_normal((N, 192))                      # no state info
+    pe = state_decoding_probe(Z_enc, S_true)
+    pi = state_decoding_probe(Z_ind, S_true)
+    print(f"  state-encoding Z:  linear_r2={pe['probe_linear_r2']:.3f}  mlp_r2={pe['probe_mlp_r2']:.3f}  (expect high)")
+    print(f"  independent Z:     linear_r2={pi['probe_linear_r2']:.3f}  mlp_r2={pi['probe_mlp_r2']:.3f}  (expect ~0)")
+
     print("\n=== diagnostic_suite (smoke) ===")
     Z = rng.standard_normal((500, 192))  # latent-shaped
     state = rng.standard_normal((500, 6))  # state-shaped
     Z_next = Z + rng.standard_normal((500, 192)) * 0.1  # near-identity dynamics
     out = diagnostic_suite(Z, env_state=state, Z_next=Z_next)
     for k, v in out.items():
-        print(f"  {k}: {v:.4f}")
+        sval = f"{v:.4f}" if isinstance(v, float) else str(v)
+        print(f"  {k}: {sval}")
 
 
 if __name__ == "__main__":

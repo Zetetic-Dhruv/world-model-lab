@@ -8,6 +8,11 @@ it is reusable for any work that measures how much a learned representation enco
 about some quantity** (mutual information, linear/MLP probe R², effective rank,
 "state sufficiency," etc.).
 
+> A formal companion — the same protocol in URS form ⟨A,M,R,T⟩, with the
+> KK-resolution argument and the **proof-witness ledger** (MI-invariance for Gate 1,
+> the data-processing-inequality ceiling for Gate 3, the constructive
+> counterexample for Gate 2) — is in [`METHODS_URS.md`](METHODS_URS.md).
+
 It exists because, over a multi-day GPU study, **we were about to report four
 different confident claims, and each one was a distinct measurement artifact.**
 Each was caught by a cheap control. The lesson is ordered and unforgiving:

@@ -22,7 +22,7 @@ Reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero —
 - ✓ Canonical TwoRoom env imported directly from `stable_worldmodel` (Maes et al., MIT 2026) for faithful Lim #3 study
 - ✓ Information-geometric diagnostics: `effective_rank_pr`, `ksg_mi`, `twonn_intrinsic_dim` (`src/diagnostics.py`)
 - ✓ Resolution-sweep orchestrator (`tools/run_sweep.py`) with disk audit, resume, JSON aggregation
-- ✓ **Reacher resolution sweep complete (6 cells × 1 seed + 2 cells denoise) — 5 cross-seed-verified original claims about LeWM**
+- ⚠ **Reacher resolution study — earlier "5 verified claims" RETRACTED as measurement artifacts** (under-training + estimator geometry + frame-leakage + probe underpowering). The durable outcome is a four-gate validity protocol: [`projects/lewm/METHODOLOGY.md`](projects/lewm/METHODOLOGY.md). Clean redo specced in [`V2_DESIGN.md`](projects/lewm/V2_DESIGN.md).
 
 ### Layout
 
@@ -150,59 +150,37 @@ The Reacher Pl-check confirms LeWM's mechanism replicates on a real continuous-c
 | Rollout MSE | 0.43× of identity baseline (predictor learns real dynamics) |
 | z_std (post-projector) | 0.90 |
 
-### Original findings — Reacher resolution sweep (controlled study)
+### Reacher resolution study — RETRACTED claims, and the protocol that survived
 
-Beyond reproduction, we ran a controlled **resolution × information-geometry** sweep on Reacher (6 cells × 1 seed for the full curve, plus 2 cells × 2 seeds for cross-seed verification). The constant-grid design holds patch GRID at 16×16 (256 tokens) across all resolutions {64, 96, 128, 160, 192, 224}, isolating "pixel info per patch" as the only varied variable while keeping attention compute fixed. Total compute: 68.1 hr CPU.
+> **Retraction.** An earlier version of this section reported "5 strong, cross-seed-verified
+> claims" from a 68.1 hr CPU resolution sweep — most prominently *"effective rank ≈ 12 of 192,
+> resolution-invariant"* and *"MI(z, state) saturates at 3.4–3.5."* **Those claims were
+> measurement artifacts and are withdrawn.** A subsequent convergence study (100-epoch
+> training on GPU) plus estimator-validity controls showed each was a distinct artifact:
 
-#### Per-cell metrics (single seed=42, all 6 resolutions)
+| Withdrawn claim | What it actually was |
+|---|---|
+| effective rank ≈ 12, resolution-invariant | **under-training** — at 10 epochs rank is mid-climb; trained out it rises to ~28 and is still rising at epoch 100 |
+| MI(z, state) saturates at 3.4–3.5 | **under-training + KSG geometry** — MI still rises to 3.9 at convergence, and the KSG estimator itself drifts with the SIGReg-reshaped latent geometry, not with information |
+| the downstream "state sufficiency" gap | **frame-leakage** — frame-split probe R² (0.88 vs 0.80) collapses under trajectory-level split; the gap was within-episode memorization, then *underpowered* on too few held-out episodes |
 
-| img | patch | success | τ-gap | near | unrel | ER (out of 192) | MI(z, env_state) | MI(z, z_next) |
-|---|---|---|---|---|---|---|---|---|
-| 64  | 4  | 1.000 | 10.71× | 1.82 | 19.50 | 11.94 | 3.826 nats | 5.446 |
-| 96  | 6  | 0.967 | 23.94× | 0.84 | 20.19 | 11.35 | 3.500 | 4.941 |
-| 128 | 8  | 0.967 | 26.30× | 0.73 | 19.11 | 12.08 | 3.475 | 5.037 |
-| 160 | 10 | 1.000 | 26.62× | 0.76 | 20.30 | 12.58 | 3.506 | 4.929 |
-| 192 | 12 | 1.000 | 52.10× | 0.36 | 18.89 | 11.69 | 3.408 | 4.899 |
-| 224 | 14 | 0.967 | 20.24× | 0.85 | 17.14 | 12.88 | 3.503 | 5.029 |
+**What actually survives** (estimator-robust, probe-free):
+- **Predictive-accuracy convergence speed is monotone in resolution** — higher input density trains the next-latent predictor faster and far more stably (128px near-converged by ~epoch 10, 64px chaotic until ~epoch 70).
+- **Effective rank rises over training toward ~28/192** (not 12; 12 was a snapshot), at a resolution-dependent rate. It measures anti-collapse-regularizer compliance, **not** representation quality.
 
-#### Cross-seed denoise (192 + 224 with seed=1)
+**What is suggestive but not yet claimable:** a predictability–sufficiency dissociation
+(the better self-predictor may be the worse state-encoder). A powered-but-contaminated probe
+hints at it — 64px latent decodes state to the raw-pixel ceiling, 128px falls below it — but
+this needs the clean v2 protocol (held-out probe pool, seeds, ceiling-normalization) before it
+is a claim.
 
-| img | seed | τ-gap | near | unrel | ER | MI(z, env_state) | MI(z, z_next) |
-|---|---|---|---|---|---|---|---|
-| 192 | 42 | 52.10× | 0.363 | 18.89 | 11.69 | 3.408 | 4.899 |
-| 192 | 1  | 32.02× | 0.575 | 18.41 | 12.83 | 3.404 | 4.794 |
-| 224 | 42 | 20.24× | 0.847 | 17.14 | 12.88 | 3.503 | 5.029 |
-| 224 | 1  | 22.04× | 0.868 | 19.13 | 11.37 | 3.484 | 5.110 |
+#### The concrete, durable outcome
 
-**Cross-seed variance:** MI(z, state) **0.1–0.5%** (rock-solid), effective rank **10–12%**, τ-gap **9–62%** (high-variance at 192).
-
-#### Five strong original claims (multi-seed verified or methodologically self-evident)
-
-1. **Effective rank of LeWM-mechanism JEPA latents on Reacher is ~12 of 192 dims, resolution-invariant.** Out of the 192-D Gaussian prior SIGReg targets, only ~6% is utilized. Cross-seed variance 10–12%. The paper's "isotropic Gaussian in high-D" claim is, in practice, a low-rank Gaussian.
-
-2. **MI(z, env_state) saturates after a sharp 64→96 drop, with cross-seed variance < 1%.** Encoder fidelity stabilizes at 3.4–3.5 nats once resolution exceeds 96×96. Higher resolution buys *zero* additional state-recoverable information.
-
-3. **Reacher env_state has TwoNN intrinsic dim ≈ 3.87** (out of 6-D state). Quantifies LeWM Limitation #3's qualitative "low intrinsic dim" claim. Combined with Claim 1: encoder uses **3× more dims** than the env's data manifold needs.
-
-4. **Constant-grid resolution sweep methodology**: scaling `patch_size = image_size / 16` keeps attention compute constant (256 tokens) across resolutions, isolating "pixel info per patch" as the only varied variable. Novel design vs prior fixed-patch-size sweeps.
-
-5. **Single-seed τ-gap evaluation is unreliable at high resolution.** Up to 62% relative variance across seeds at image=192. Path-C `tau_gap_factor` reports without seed analysis should be treated cautiously — methodological caveat applies to LeWM and follow-ups.
-
-#### Two suggestive claims (single-seed direction, need cross-env Stage 2)
-
-6. **Resolution buys trajectory-discriminability at the cost of state-fidelity.** As resolution rises, MI(z, env_state) drops monotonically while τ-gap (mean) rises. Direction is robust; magnitude is noisy.
-
-7. **Saturation around 96–128 for low-intrinsic-dim envs.** Both MI saturation and τ-gap plateauing suggest the *useful* effect of resolution increase ends around 96×96 for Reacher. Practical implication: 96×96 may suffice instead of canonical 224×224 at 1/12 the pixel compute, on this substrate.
-
-#### What we cannot claim from Reacher data alone
-
-- Cross-env generalizability — only Reacher tested at sweep scale
-- Causal mechanism for resolution effects (correlations, not interventions)
-- Properties of canonical 18M-param + 100-epoch + 224×224 LeWM (we ran tiny preset + 10 epochs)
-- Whether SIGReg vs ViT capacity vs latent-dim choice is the dominant cause of the rank-12 plateau (no ablation)
-- Generalization to V-JEPA / I-JEPA / DINO-WM (single-substrate, single-architecture)
-
-See `projects/lewm/README.md` for full sweep methodology, `tools/run_sweep.py` for the orchestrator, `src/diagnostics.py` for the estimator implementations.
+The reusable result of this whole episode is **[`projects/lewm/METHODOLOGY.md`](projects/lewm/METHODOLOGY.md)** —
+a four-gate validity protocol (convergence, estimator geometry, split leakage, power & baseline)
+for probing learned representations without fooling yourself. Each gate caught one of the
+artifacts above. The next clean experiment is specced in
+**[`projects/lewm/V2_DESIGN.md`](projects/lewm/V2_DESIGN.md)**.
 
 ### For Claude to follow (or "axioms" if one uses AMRT!) - 
 

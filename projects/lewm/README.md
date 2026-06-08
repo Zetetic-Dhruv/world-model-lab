@@ -19,7 +19,7 @@ Mechanism-canonical: 2-layer MLP projector with BN-in-middle, separate `pred_pro
 - ✓ Real-data-ready: episode-directory format (NPZ or video) accepted via `--episode-dir`
 - ✓ Information-geometric diagnostic suite — `effective_rank_pr`, `ksg_mi`, `twonn_intrinsic_dim` (`src/diagnostics.py`)
 - ✓ Resolution-sweep orchestrator with disk audit + resume + JSON aggregation (`tools/run_sweep.py`, `tools/run_diagnostics.py`)
-- ✓ **Reacher resolution sweep complete: 6 cells + 2-cell cross-seed denoise = 68.1 hr CPU. Five strong original claims about LeWM produced** (see Resolution × information-geometry sweep section below)
+- ⚠ **Reacher resolution study — earlier "5 strong claims" RETRACTED as measurement artifacts.** Durable outcome: a four-gate validity protocol for representation probing ([`METHODOLOGY.md`](METHODOLOGY.md)); clean redo specced in [`V2_DESIGN.md`](V2_DESIGN.md). See the retraction below.
 
 ## Layout
 
@@ -226,37 +226,29 @@ Wallclock totals: cell-by-cell 3.4 hr → 6.1 hr → 6.3 hr → 11.5 hr → 8.3 
 
 **Denoise total wallclock: 21.8 hr.** Combined Reacher compute: **68.1 hr CPU**.
 
-### Original claims supported by the data
+### ⚠ RETRACTION — the "claims" from this 10-epoch sweep were artifacts
 
-**Strong (multi-seed verified or methodologically self-evident):**
+The tables above come from a **10-epoch** sweep and were originally written up as five
+strong claims. **They are withdrawn.** A follow-up 100-epoch convergence study plus
+estimator-validity controls showed each headline was a distinct measurement artifact:
 
-1. **Effective rank ≈ 12 of 192 dims, resolution-invariant** — out of the 192-D Gaussian prior SIGReg targets, only ~6% of capacity is utilized. Cross-seed variance 10–12%.
+| Withdrawn | Reality |
+|---|---|
+| "effective rank ≈ 12, resolution-invariant" | **under-training** — rank climbs to ~28 by epoch 100 and is still rising; 12 was a snapshot. Rank also measures anti-collapse compliance, not quality. |
+| "MI(z, state) saturates at 3.4–3.5" | **under-training + KSG geometry** — MI rises to ~3.9 at convergence; and KSG on a 192-D latent drifts with the SIGReg-reshaped geometry, not with information (a decoding probe shows the "trend" flat). |
+| "resolution trades discriminability for state-fidelity" | rests on the same KSG MI + a **frame-leaked** downstream probe; collapses under trajectory-level splitting + power controls. |
 
-2. **MI(z, env_state) saturates at 3.4–3.5 nats** above resolution 96. Cross-seed variance < 1% — the most robust metric we have.
+Still standing (estimator-robust): **predictive-accuracy convergence speed is monotone in
+resolution**, and **effective rank rises over training**. The genuinely reusable result is the
+four-gate validity protocol that caught all of this: **[`METHODOLOGY.md`](METHODOLOGY.md)**.
+The clean redo is specced in **[`V2_DESIGN.md`](V2_DESIGN.md)**. The methodology note in this
+section that *is* legitimate is the **constant-grid design** (patch = image_size/16 holds token
+count + attention cost fixed, isolating pixels-per-token) — reused in v2.
 
-3. **Reacher env_state TwoNN intrinsic dim ≈ 3.87** quantifies LeWM Limitation #3's "low intrinsic dim" qualitative claim. Encoder uses ~3× more dims than the env's data manifold.
-
-4. **Constant-grid sweep methodology** isolates resolution as a clean variable (compute and token count fixed). Novel design vs prior fixed-patch sweeps.
-
-5. **Single-seed τ-gap unreliability at high resolution** (62% relative variance at 192). Methodological caveat for any work using Path-C `tau_gap_factor` without seed analysis.
-
-**Suggestive (single-seed direction, need cross-env Stage 2 to confirm):**
-
-6. **Resolution buys trajectory-discriminability at the cost of state-fidelity.** As resolution rises, MI(z, env_state) drops monotonically while τ-gap (mean) trends up.
-
-7. **Saturation around 96–128 for low-intrinsic-dim envs.** Practical implication: 96×96 may suffice on Reacher-like envs at ~1/12 the pixel compute of canonical 224×224.
-
-### What we cannot claim
-
-- Cross-env generalizability — only Reacher tested at sweep scale (Stage 2 = TwoRoom + MiniPushT, ~32 hr more CPU)
-- Causal mechanism (correlations only)
-- Properties of canonical 18M-param + 100-epoch + 224×224 LeWM (we use tiny preset + 10 epochs)
-- Whether SIGReg, ViT capacity, or latent dim choice dominates the rank-12 plateau (no ablation)
-- Generalization to V-JEPA / I-JEPA / DINO-WM (single-substrate only)
-
-### Reproducing the sweep
+### Reproducing the (superseded) 10-epoch sweep
 
 ```bash
+# NOTE: 10 epochs is under-trained (see retraction above). Kept for provenance only.
 # Full sweep on Reacher (6 cells × ~3-11 hr each, Mac CPU):
 python tools/run_sweep.py --device cpu \
     --envs reacher --resolutions 64,96,128,160,192,224 \

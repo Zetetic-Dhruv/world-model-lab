@@ -84,6 +84,7 @@ def run_cell(env, image_size, args, cell, project_dir):
         "--no-wandb",
         "--log-every", "100",
         "--seed", str(args.seed),
+        "--num-workers", str(args.num_workers),
     ]
     t0 = time.time()
     print(f"[sweep] {env}@{image_size}: training...", flush=True)
@@ -293,6 +294,10 @@ def main():
                         help="Skip cells, just aggregate existing results.")
     parser.add_argument("--per-cell-min-estimate", type=int, default=90,
                         help="Wallclock estimate per cell in minutes (default 90).")
+    parser.add_argument("--num-workers", type=int, default=0,
+                        help="DataLoader workers passed to train.py. On GPU, set "
+                             "to ~#vCPUs (e.g. 8) — single-process h5 loading starves "
+                             "the GPU (0%% util). On CPU, 0 is fine (compute-bound).")
     parser.add_argument("--skip-eval", action="store_true",
                         help="Skip the CEM planning eval (which steps the live env "
                              "and needs dm_control). Diagnostics (rank/MI) only need "

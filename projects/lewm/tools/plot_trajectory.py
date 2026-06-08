@@ -61,8 +61,8 @@ def read_dense_val(train_log_csv: Path):
 
 
 def read_sparse_diag(cell_dir: Path, final_epoch: int):
-    """Return (epochs, ER, MI_state, MI_znext) from diagnostics_epoch*.json
-    plus diagnostics.json mapped to final_epoch."""
+    """Return dict of trajectories from diagnostics_epoch*.json + diagnostics.json.
+    Keys: epochs, er, mi_state (KSG), mi_znext (KSG), probe_lin, probe_mlp."""
     pts = []
     for f in cell_dir.glob("diagnostics_epoch*.json"):
         m = re.search(r"epoch(\d+)", f.stem)
@@ -76,11 +76,15 @@ def read_sparse_diag(cell_dir: Path, final_epoch: int):
         d = json.loads(final.read_text()).get("metrics", {})
         pts.append((final_epoch, d))
     pts.sort(key=lambda x: x[0])
-    epochs = [e for e, _ in pts]
-    er = [d.get("latent_effective_rank_pr", float("nan")) for _, d in pts]
-    mis = [d.get("mi_z_envstate_nats", float("nan")) for _, d in pts]
-    miz = [d.get("mi_z_znext_nats", float("nan")) for _, d in pts]
-    return epochs, er, mis, miz
+    g = lambda k: [d.get(k, float("nan")) for _, d in pts]
+    return {
+        "epochs": [e for e, _ in pts],
+        "er": g("latent_effective_rank_pr"),
+        "mi_state": g("mi_z_envstate_nats"),
+        "mi_znext": g("mi_z_znext_nats"),
+        "probe_lin": g("probe_linear_r2"),
+        "probe_mlp": g("probe_mlp_r2"),
+    }
 
 
 def plot_cell(cell_dir: Path, image_size: int, out_path: Path):
@@ -90,26 +94,36 @@ def plot_cell(cell_dir: Path, image_size: int, out_path: Path):
         return None
     d_epochs, d_lpred, d_pir = read_dense_val(train_log)
     final_epoch = max(d_epochs) if d_epochs else 99
-    s_epochs, er, mis, miz = read_sparse_diag(cell_dir, final_epoch)
+    s = read_sparse_diag(cell_dir, final_epoch)
+    se = s["epochs"]
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     fig.suptitle(f"Reacher @ {image_size}×{image_size} — convergence trajectory "
                  f"(100 epochs, tiny preset, seed 42)", fontsize=13, weight="bold")
 
-    # (a) MI vs epoch
+    # (a) State sufficiency: probe-R² (trustworthy) + KSG MI (geometry-suspect) vs epoch
     ax = axes[0, 0]
-    ax.plot(s_epochs, mis, "o-", color="C0", label="MI(z, env_state)")
-    ax.plot(s_epochs, miz, "s--", color="C1", label="MI(z, z_next)")
-    ax.set_xlabel("epoch"); ax.set_ylabel("MI [nats]")
-    ax.set_title("(a) Mutual information vs epoch")
-    ax.legend(); ax.grid(alpha=0.3)
-
-    # (b) Effective rank vs epoch
-    ax = axes[0, 1]
-    ax.plot(s_epochs, er, "o-", color="C2")
-    ax.set_xlabel("epoch"); ax.set_ylabel("effective rank (PR) / 192")
-    ax.set_title("(b) Latent effective rank vs epoch")
+    ax.plot(se, s["probe_mlp"], "o-", color="C0", label="probe R² (MLP) — state")
+    ax.plot(se, s["probe_lin"], "^-", color="C0", alpha=0.5, label="probe R² (linear)")
+    ax.set_xlabel("epoch"); ax.set_ylabel("state-decode R²", color="C0")
+    ax.tick_params(axis="y", labelcolor="C0")
+    ax2 = ax.twinx()
+    ax2.plot(se, s["mi_state"], "s--", color="C1", alpha=0.7, label="KSG MI(z;state) [nats]")
+    ax2.set_ylabel("KSG MI [nats]", color="C1"); ax2.tick_params(axis="y", labelcolor="C1")
+    ax.set_title("(a) State sufficiency: probe R² vs KSG MI")
+    ax.legend(loc="lower left", fontsize=8); ax2.legend(loc="lower right", fontsize=8)
     ax.grid(alpha=0.3)
+
+    # (b) Effective rank + temporal MI(z_t;z_{t+1}) vs epoch
+    ax = axes[0, 1]
+    ax.plot(se, s["er"], "o-", color="C2", label="effective rank (PR)")
+    ax.set_xlabel("epoch"); ax.set_ylabel("effective rank / 192", color="C2")
+    ax.tick_params(axis="y", labelcolor="C2")
+    ax2 = ax.twinx()
+    ax2.plot(se, s["mi_znext"], "d--", color="C5", alpha=0.7, label="MI(z_t; z_{t+1}) [nats]")
+    ax2.set_ylabel("temporal MI [nats]", color="C5"); ax2.tick_params(axis="y", labelcolor="C5")
+    ax.set_title("(b) Effective rank + temporal self-MI")
+    ax.legend(loc="lower right", fontsize=8); ax.grid(alpha=0.3)
 
     # (c) Predictive accuracy: val L_pred vs epoch (log-y)
     ax = axes[1, 0]
@@ -119,43 +133,58 @@ def plot_cell(cell_dir: Path, image_size: int, out_path: Path):
     ax.set_title("(c) Predictive accuracy vs epoch")
     ax.grid(alpha=0.3, which="both")
 
-    # (d) Predictor/identity ratio vs epoch (log-y, y=1 ref)
+    # (d) Predictability–sufficiency frontier: L_pred vs probe-R², epoch as path
     ax = axes[1, 1]
-    ax.plot(d_epochs, d_pir, "-", color="C4")
-    ax.axhline(1.0, color="k", ls=":", lw=1, label="beats identity (P/I=1)")
-    ax.set_yscale("log")
-    ax.set_xlabel("epoch"); ax.set_ylabel("predictor / identity ratio")
-    ax.set_title("(d) Predictor vs identity baseline")
-    ax.legend(); ax.grid(alpha=0.3, which="both")
+    # interpolate dense L_pred at the sparse diagnostic epochs
+    lpred_at = [d_lpred[min(range(len(d_epochs)), key=lambda i: abs(d_epochs[i]-e))]
+                for e in se]
+    sc = ax.scatter(lpred_at, s["probe_mlp"], c=se, cmap="viridis", s=60, zorder=3)
+    ax.plot(lpred_at, s["probe_mlp"], "-", color="gray", alpha=0.5, zorder=2)
+    ax.set_xscale("log")
+    ax.set_xlabel("val L_pred (predictability →, log)"); ax.set_ylabel("probe R² (sufficiency ↑)")
+    ax.set_title("(d) Predictability–sufficiency frontier")
+    cb = fig.colorbar(sc, ax=ax); cb.set_label("epoch")
+    ax.grid(alpha=0.3, which="both")
 
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(out_path, dpi=130)
     plt.close(fig)
     print(f"[plot] wrote {out_path}")
-    return {"image_size": image_size, "epochs": s_epochs, "ER": er,
-            "MI_state": mis, "dense_epochs": d_epochs, "val_lpred": d_lpred}
+    return {"image_size": image_size, "epochs": se, "ER": s["er"],
+            "MI_state": s["mi_state"], "probe_mlp": s["probe_mlp"],
+            "mi_znext": s["mi_znext"], "dense_epochs": d_epochs, "val_lpred": d_lpred,
+            "lpred_at": lpred_at}
 
 
 def plot_overlay(cells: list, out_path: Path):
-    """Overlay MI(z,state) and effective rank across resolutions."""
+    """Overlay across resolutions. Top row: probe-R²(state), effective rank,
+    predictive accuracy vs epoch. Bottom: the predictability–sufficiency frontier
+    (val L_pred vs probe-R², traversed by epoch) — the core 'object' of the study."""
     if not cells:
         return
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4.5))
-    fig.suptitle("Reacher resolution sweep — convergence across image sizes",
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+    fig.suptitle("Reacher resolution sweep — predictability vs state-sufficiency",
                  fontsize=13, weight="bold")
     for c in cells:
         lbl = f"{c['image_size']}px"
-        axes[0].plot(c["epochs"], c["MI_state"], "o-", label=lbl)
-        axes[1].plot(c["epochs"], c["ER"], "o-", label=lbl)
-        axes[2].plot(c["dense_epochs"], c["val_lpred"], "-", label=lbl)
-    axes[0].set_title("MI(z, env_state) vs epoch"); axes[0].set_xlabel("epoch")
-    axes[0].set_ylabel("MI [nats]"); axes[0].legend(); axes[0].grid(alpha=0.3)
-    axes[1].set_title("Effective rank vs epoch"); axes[1].set_xlabel("epoch")
-    axes[1].set_ylabel("effective rank (PR)"); axes[1].legend(); axes[1].grid(alpha=0.3)
-    axes[2].set_title("Predictive accuracy (val L_pred) vs epoch")
-    axes[2].set_xlabel("epoch"); axes[2].set_ylabel("val L_pred")
-    axes[2].set_yscale("log"); axes[2].legend(); axes[2].grid(alpha=0.3, which="both")
-    fig.tight_layout(rect=[0, 0, 1, 0.94])
+        axes[0, 0].plot(c["epochs"], c["probe_mlp"], "o-", label=lbl)
+        axes[0, 1].plot(c["epochs"], c["ER"], "o-", label=lbl)
+        axes[1, 0].plot(c["dense_epochs"], c["val_lpred"], "-", label=lbl)
+        axes[1, 1].plot(c["lpred_at"], c["probe_mlp"], "o-", label=lbl)
+    axes[0, 0].set_title("State sufficiency: probe R² vs epoch (trustworthy)")
+    axes[0, 0].set_xlabel("epoch"); axes[0, 0].set_ylabel("state-decode R²")
+    axes[0, 0].legend(); axes[0, 0].grid(alpha=0.3)
+    axes[0, 1].set_title("Effective rank vs epoch")
+    axes[0, 1].set_xlabel("epoch"); axes[0, 1].set_ylabel("effective rank (PR)")
+    axes[0, 1].legend(); axes[0, 1].grid(alpha=0.3)
+    axes[1, 0].set_title("Predictive accuracy (val L_pred) vs epoch")
+    axes[1, 0].set_xlabel("epoch"); axes[1, 0].set_ylabel("val L_pred")
+    axes[1, 0].set_yscale("log"); axes[1, 0].legend(); axes[1, 0].grid(alpha=0.3, which="both")
+    axes[1, 1].set_title("Predictability–sufficiency frontier")
+    axes[1, 1].set_xlabel("val L_pred (predictability →, log)")
+    axes[1, 1].set_ylabel("probe R² (sufficiency ↑)")
+    axes[1, 1].set_xscale("log"); axes[1, 1].legend(); axes[1, 1].grid(alpha=0.3, which="both")
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(out_path, dpi=130)
     plt.close(fig)
     print(f"[plot] wrote {out_path}")

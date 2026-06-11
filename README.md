@@ -2,10 +2,6 @@
 
 A working repository for world-model research aimed at preventing machine errors in long-horizon automation. Each experiment is a self-contained directory under [`projects/`](projects/).
 
-## Test suite — [`test-suite/`](test-suite/)
-
-The evaluation bench for this repo's world models: ~43 public datasets with **naturally occurring** out-of-distribution shift, each carrying a four-part **epistemic state** (`facts` / `hypotheses` / `intuitions` / `unknowns`) that is the rubric a self-taught theory gets scored against. It is the bench for *real autodidaxis* — testing whether a self-built theory survives genuine mechanism change rather than overfitting its training regime. See [`test-suite/README.md`](test-suite/README.md) and the requirement-mapping in [`test-suite/AUTODIDAXIS.md`](test-suite/AUTODIDAXIS.md).
-
 ## Experiment 1 — `projects/lewm`
 
 Reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero — arXiv:2603.19312, 2026): a stable end-to-end Joint-Embedding Predictive Architecture (JEPA) world model trained from raw pixels.
@@ -33,7 +29,6 @@ Reproduction of **LeWorldModel** (Maes, Le Lidec, Scieur, LeCun, Balestriero —
 ```
 world-model-lab/
 ├── README.md                      # this file
-├── test-suite/                    # evaluation bench for real autodidaxis (~43 natural-OOD datasets)
 └── projects/
     └── lewm/                      # Experiment 1: LeWorldModel reproduction
         ├── README.md               # detailed operational README

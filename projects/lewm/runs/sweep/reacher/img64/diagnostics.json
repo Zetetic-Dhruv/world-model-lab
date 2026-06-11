@@ -1,0 +1,19 @@
+{
+  "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img64/ckpt_epoch9.pt",
+  "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60.h5",
+  "n_samples": 2000,
+  "stride": 5,
+  "image_size": 64,
+  "patch_size": 4,
+  "env": "reacher",
+  "Z_dim": 192,
+  "state_dim": 6,
+  "metrics": {
+    "latent_effective_rank_pr": 11.944904397182148,
+    "latent_twonn_intrinsic_dim": 0.18099365070224954,
+    "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+    "env_state_effective_rank_pr": 4.06539905204422,
+    "mi_z_envstate_nats": 3.8257898388875606,
+    "mi_z_znext_nats": 5.44614897359368
+  }
+}

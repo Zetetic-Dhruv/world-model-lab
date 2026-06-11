@@ -1,0 +1,45 @@
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=2 by 3, horizontal sep=0.6cm, vertical sep=1.35cm},
+  width=0.42\textwidth,
+  height=0.24\textwidth,
+  xmin=0, xmax=100,
+  xtick={0,20,40,60,80,100},
+  tick label style={font=\scriptsize},
+  label style={font=\small},
+  title style={font=\small},
+  legend style={font=\scriptsize, draw=none, fill=none, at={(0.03,0.97)}, anchor=north west},
+  grid=both,
+  grid style={line width=.1pt, draw=gray!20},
+  major grid style={line width=.2pt,draw=gray!35}
+]
+\nextgroupplot[title={Effective rank}, ylabel={Rank}]
+\addplot+[black, mark=*, thick] table[x=epoch,y=effective_rank,col sep=comma]{data/trajectory_metrics_res64.csv};
+\addplot+[black, dashed, mark=square*, thick] table[x=epoch,y=effective_rank,col sep=comma]{data/trajectory_metrics_res128.csv};
+\legend{64px,128px}
+
+\nextgroupplot[title={KSG mutual information}, ylabel={nats}]
+\addplot+[black, mark=*, thick] table[x=epoch,y=ksg_mi_nats,col sep=comma]{data/trajectory_metrics_res64.csv};
+\addplot+[black, dashed, mark=square*, thick] table[x=epoch,y=ksg_mi_nats,col sep=comma]{data/trajectory_metrics_res128.csv};
+
+\nextgroupplot[title={Linear probe}, ylabel={$R^2$}, xlabel={Epoch}, ymin=0.65, ymax=0.88]
+\addplot+[black, mark=*, thick] table[x=epoch,y=linear_probe_r2,col sep=comma]{data/trajectory_metrics_res64.csv};
+\addplot+[black, dashed, mark=square*, thick] table[x=epoch,y=linear_probe_r2,col sep=comma]{data/trajectory_metrics_res128.csv};
+
+\nextgroupplot[title={Validation prediction loss}, ylabel={$L_{\rm pred}$}, xlabel={Epoch}, ymode=log, ymin=0.006, ymax=300]
+\addplot+[black, mark=*, thick] table[x=epoch,y=val_L_pred,col sep=comma]{data/trajectory_metrics_res64.csv};
+\addplot+[black, dashed, mark=square*, thick] table[x=epoch,y=val_L_pred,col sep=comma]{data/trajectory_metrics_res128.csv};
+
+\nextgroupplot[title={Estimator-geometry control (synthetic)}, ylabel={nats\,/\,$R^2$}, xlabel={Anisotropy $a$},
+  xmode=log, log basis x=2, xmin=1, xmax=32, xtick={1,2,4,8,16,32}, xticklabels={1,2,4,8,16,32},
+  ymin=-0.05, ymax=1.12,
+  legend style={font=\scriptsize, draw=none, fill=none, at={(0.97,0.62)}, anchor=east}]
+\addplot+[black, mark=*, thick, error bars/.cd, y dir=both, y explicit]
+  table[x=stretch,y=ksg_mean,y error plus=ksg_ep,y error minus=ksg_em,col sep=comma]{data/geometry_sweep_plot.csv};
+\addplot+[black, dashed, mark=square*, thick, error bars/.cd, y dir=both, y explicit]
+  table[x=stretch,y=probe_mean,y error plus=probe_ep,y error minus=probe_em,col sep=comma]{data/geometry_sweep_plot.csv};
+\legend{KSG MI, probe $R^2$}
+
+\nextgroupplot[group/empty plot]
+\end{groupplot}
+\end{tikzpicture}

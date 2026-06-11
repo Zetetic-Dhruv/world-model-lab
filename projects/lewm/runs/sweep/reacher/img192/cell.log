@@ -1,0 +1,106 @@
+# /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/bin/python -u train.py --path-c --env reacher --image-size 192 --patch-size auto --n-episodes 500 --path-c-episode-length 60 --epochs 10 --batch-size 64 --arch-preset tiny --out-dir /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192 --device cpu --no-wandb --log-every 100 --seed 42
+[init] device=cpu
+[data] generating 500 trajectories × 60 env steps @ 192×192... (env=reacher policy=weakpolicy)
+[data] wrote data/reacher_weakpolicy_n500_T60_img192.h5
+[split] train=450 eps (18450 windows)  val=50 eps (2050 windows)
+[path-c] action_dim=10  history_size=3  stride=5
+[split] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/splits.npz
+[data] dataset windows=18450 batches/epoch=288 total_steps=2880  | val_batches=33
+[model] preset=tiny  params=5,624,640  (enc d=6 h=3  proj_h=384  pred d=4 h=8×24 mlp=576)
+[opt] AdamW lr=5e-05 wd=0.001 warmup=1.0% total_steps=2880
+[train] epochs=10 batch=64 λ=0.09 M=1024
+[step    100 ep 0] L=0.9562 L_p=0.2934 L_s=7.3643 z_std=0.656 lr=4.99e-05 nr=0.000 rec=0 (947.0s)
+[step    200 ep 0] L=0.6338 L_p=0.1937 L_s=4.8900 z_std=0.777 lr=4.96e-05 nr=0.000 rec=0 (1914.4s)
+[epoch 0] done in 2768.5s; stats={'step': 288, 'snapshots': 3, 'snapshot_steps': [260, 270, 280], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 0] L_pred=3.8207  L_identity=0.0224  P/I_ratio=170.222  z_norm=39.69  z_std=0.490
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch0.pt
+[step    300 ep 1] L=0.4310 L_p=0.0634 L_s=4.0851 z_std=0.880 lr=4.89e-05 nr=0.000 rec=0 (3092.0s)
+[step    400 ep 1] L=0.3447 L_p=0.0323 L_s=3.4712 z_std=0.941 lr=4.79e-05 nr=0.000 rec=0 (3994.7s)
+[step    500 ep 1] L=0.3019 L_p=0.0267 L_s=3.0583 z_std=0.977 lr=4.67e-05 nr=0.000 rec=0 (4896.8s)
+[epoch 1] done in 2611.0s; stats={'step': 576, 'snapshots': 3, 'snapshot_steps': [550, 560, 570], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 1] L_pred=0.6513  L_identity=0.0041  P/I_ratio=159.778  z_norm=29.48  z_std=0.603
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch1.pt
+[step    600 ep 2] L=0.2895 L_p=0.0263 L_s=2.9240 z_std=1.002 lr=4.52e-05 nr=0.000 rec=0 (6032.4s)
+[step    700 ep 2] L=0.2743 L_p=0.0190 L_s=2.8360 z_std=1.009 lr=4.35e-05 nr=0.000 rec=0 (6948.6s)
+[step    800 ep 2] L=0.2665 L_p=0.0191 L_s=2.7493 z_std=1.010 lr=4.15e-05 nr=0.000 rec=0 (7863.7s)
+[epoch 2] done in 2638.6s; stats={'step': 864, 'snapshots': 3, 'snapshot_steps': [840, 850, 860], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 2] L_pred=0.0655  L_identity=0.0019  P/I_ratio=33.610  z_norm=17.99  z_std=0.525
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch2.pt
+[step    900 ep 3] L=0.2662 L_p=0.0161 L_s=2.7793 z_std=1.016 lr=3.93e-05 nr=0.000 rec=0 (8994.7s)
+[step   1000 ep 3] L=0.2584 L_p=0.0133 L_s=2.7226 z_std=1.014 lr=3.70e-05 nr=0.000 rec=0 (9926.0s)
+[step   1100 ep 3] L=0.2586 L_p=0.0144 L_s=2.7131 z_std=1.000 lr=3.45e-05 nr=0.000 rec=0 (10850.4s)
+[epoch 3] done in 2660.4s; stats={'step': 1152, 'snapshots': 3, 'snapshot_steps': [1130, 1140, 1150], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 3] L_pred=0.1382  L_identity=0.0016  P/I_ratio=87.279  z_norm=21.60  z_std=0.523
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch3.pt
+[step   1200 ep 4] L=0.2496 L_p=0.0132 L_s=2.6265 z_std=1.043 lr=3.19e-05 nr=0.000 rec=0 (11991.4s)
+[step   1300 ep 4] L=0.2493 L_p=0.0123 L_s=2.6330 z_std=1.028 lr=2.92e-05 nr=0.000 rec=0 (12907.3s)
+[step   1400 ep 4] L=0.2582 L_p=0.0120 L_s=2.7348 z_std=1.024 lr=2.65e-05 nr=0.000 rec=0 (13822.9s)
+[epoch 4] done in 2649.0s; stats={'step': 1440, 'snapshots': 3, 'snapshot_steps': [1410, 1420, 1430], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 4] L_pred=0.0278  L_identity=0.0013  P/I_ratio=21.721  z_norm=14.12  z_std=0.496
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch4.pt
+[step   1500 ep 5] L=0.2413 L_p=0.0109 L_s=2.5599 z_std=1.020 lr=2.37e-05 nr=0.000 rec=0 (14957.9s)
+[step   1600 ep 5] L=0.2408 L_p=0.0098 L_s=2.5666 z_std=1.043 lr=2.10e-05 nr=0.000 rec=0 (15870.1s)
+[step   1700 ep 5] L=0.2429 L_p=0.0106 L_s=2.5812 z_std=1.051 lr=1.83e-05 nr=0.000 rec=0 (16783.0s)
+[epoch 5] done in 2634.4s; stats={'step': 1728, 'snapshots': 3, 'snapshot_steps': [1700, 1710, 1720], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 5] L_pred=0.0185  L_identity=0.0014  P/I_ratio=12.936  z_norm=15.50  z_std=0.589
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch5.pt
+[step   1800 ep 6] L=0.2546 L_p=0.0105 L_s=2.7128 z_std=1.026 lr=1.57e-05 nr=0.000 rec=0 (17923.2s)
+[step   1900 ep 6] L=0.2224 L_p=0.0080 L_s=2.3813 z_std=1.038 lr=1.32e-05 nr=0.000 rec=0 (18867.8s)
+[step   2000 ep 6] L=0.2365 L_p=0.0086 L_s=2.5322 z_std=1.045 lr=1.09e-05 nr=0.000 rec=0 (19844.8s)
+[epoch 6] done in 2745.8s; stats={'step': 2016, 'snapshots': 3, 'snapshot_steps': [1990, 2000, 2010], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 6] L_pred=0.0135  L_identity=0.0013  P/I_ratio=10.248  z_norm=15.02  z_std=0.578
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch6.pt
+[step   2100 ep 7] L=0.2427 L_p=0.0087 L_s=2.5996 z_std=1.039 lr=8.67e-06 nr=0.000 rec=0 (21014.3s)
+[step   2200 ep 7] L=0.2055 L_p=0.0086 L_s=2.1888 z_std=1.039 lr=6.69e-06 nr=0.000 rec=0 (21960.2s)
+[step   2300 ep 7] L=0.2431 L_p=0.0091 L_s=2.6002 z_std=1.056 lr=4.93e-06 nr=0.000 rec=0 (22910.6s)
+[epoch 7] done in 2726.7s; stats={'step': 2304, 'snapshots': 3, 'snapshot_steps': [2280, 2290, 2300], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 7] L_pred=0.0095  L_identity=0.0013  P/I_ratio=7.495  z_norm=13.87  z_std=0.579
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch7.pt
+[step   2400 ep 8] L=0.2495 L_p=0.0092 L_s=2.6695 z_std=1.050 lr=3.41e-06 nr=0.000 rec=0 (24104.9s)
+[step   2500 ep 8] L=0.2434 L_p=0.0084 L_s=2.6102 z_std=1.037 lr=2.16e-06 nr=0.000 rec=0 (25054.0s)
+[epoch 8] done in 2746.5s; stats={'step': 2592, 'snapshots': 3, 'snapshot_steps': [2570, 2580, 2590], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 8] L_pred=0.0077  L_identity=0.0012  P/I_ratio=6.170  z_norm=13.57  z_std=0.562
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch8.pt
+[step   2600 ep 9] L=0.2350 L_p=0.0106 L_s=2.4933 z_std=1.030 lr=1.18e-06 nr=0.000 rec=0 (26217.6s)
+[step   2700 ep 9] L=0.2184 L_p=0.0085 L_s=2.3322 z_std=1.031 lr=4.90e-07 nr=0.000 rec=0 (27163.6s)
+[step   2800 ep 9] L=0.2151 L_p=0.0084 L_s=2.2967 z_std=1.030 lr=9.70e-08 nr=0.000 rec=0 (28138.4s)
+[epoch 9] done in 2807.5s; stats={'step': 2880, 'snapshots': 3, 'snapshot_steps': [2850, 2860, 2870], 'nan_count': 0, 'nan_window': 100, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 9] L_pred=0.0067  L_identity=0.0012  P/I_ratio=5.699  z_norm=13.17  z_std=0.553
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch9.pt
+[done] total wallclock=29187.1s
+
+# /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/bin/python -u eval_planning.py --ckpt /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch9.pt --h5 /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img192.h5 --splits /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/splits.npz --n-episodes 30 --tau-samples 80 --seed 2026 --device cpu --env reacher
+[eval] device=cpu  ckpt=/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch9.pt
+[tau] calibrating τ from 80 heldout pairs (offset=25)...
+[tau] near_mean=0.363  near_p95=0.619  unrelated_mean=18.891  unrelated_min=7.190
+[tau] tau_valley=4.883  tau_p95_near=0.619
+[tau] using τ = 4.883
+[plan] H=5  action_block=5  N=300  K=30  T=30  history_size=3
+[ep   5/30] traj=320 init=31 goal=56  actual_dist=0.198  rec_goal=1.069  success=True  rate=1.000  (23.0s)
+[ep  10/30] traj=113 init=4 goal=29  actual_dist=0.096  rec_goal=0.207  success=True  rate=1.000  (45.5s)
+[ep  15/30] traj=432 init=15 goal=40  actual_dist=1.613  rec_goal=1.993  success=True  rate=1.000  (65.6s)
+[ep  20/30] traj=35 init=23 goal=48  actual_dist=0.268  rec_goal=0.484  success=True  rate=1.000  (85.6s)
+[ep  25/30] traj=396 init=19 goal=44  actual_dist=0.269  rec_goal=0.834  success=True  rate=1.000  (105.7s)
+[ep  30/30] traj=320 init=14 goal=39  actual_dist=0.285  rec_goal=1.394  success=True  rate=1.000  (126.7s)
+
+=== PATH C RESULTS ===
+  success_rate (latent < τ=4.883): 1.000  (30/30)
+  actual_dist:  mean=0.561  med=0.331  min=0.096  max=2.205
+  qpos_to_recorded_goal_dist (diagnostic): mean=1.452  med=1.322
+  tip_to_target_dist (old metric):       mean=0.155  med=0.136
+  τ-calibration: near_mean=0.363  unrelated_mean=18.891
+  total wallclock: 126.7s
+  saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/path_c_eval.npz
+
+# /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/bin/python -u tools/run_diagnostics.py --ckpt /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch9.pt --h5 /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img192.h5 --splits /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/splits.npz --out /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/diagnostics.json --n-samples 2000 --device cpu
+[diag] device=cpu  ckpt=/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch9.pt
+[diag] extracting 2000 latent triples (stride=5)...
+[diag] Z=(2000, 192)  Z_next=(2000, 192)  env_state=(2000, 6)
+[diag] running diagnostic_suite...
+[diag] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/diagnostics.json
+  latent_effective_rank_pr: 11.6937
+  latent_twonn_intrinsic_dim: 0.2152
+  env_state_twonn_intrinsic_dim: 3.8658
+  env_state_effective_rank_pr: 4.0654
+  mi_z_envstate_nats: 3.4081
+  mi_z_znext_nats: 4.8991

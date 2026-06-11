@@ -1,0 +1,5 @@
+split,resolution,probe_r2
+frame,64,0.886
+frame,128,0.798
+trajectory,64,-0.56
+trajectory,128,-0.98

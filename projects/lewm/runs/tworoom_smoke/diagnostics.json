@@ -1,0 +1,19 @@
+{
+  "ckpt": "runs/tworoom_smoke/ckpt_epoch0.pt",
+  "h5": "data/tworoom_expert_n50_T60_img64.h5",
+  "n_samples": 200,
+  "stride": 5,
+  "image_size": 64,
+  "patch_size": 8,
+  "env": "tworoom",
+  "Z_dim": 192,
+  "state_dim": 10,
+  "metrics": {
+    "latent_effective_rank_pr": 10.864504152942025,
+    "latent_twonn_intrinsic_dim": 0.14411885974462876,
+    "env_state_twonn_intrinsic_dim": 3.375497461473643,
+    "env_state_effective_rank_pr": 2.944860542331482,
+    "mi_z_envstate_nats": 0.9112363490036337,
+    "mi_z_znext_nats": 0.554461777076181
+  }
+}

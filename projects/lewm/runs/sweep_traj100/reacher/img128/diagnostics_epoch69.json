@@ -1,0 +1,37 @@
+{
+  "ckpt": "runs/sweep_traj100/reacher/img128/ckpt_epoch69.pt",
+  "h5": "data/reacher_weakpolicy_n500_T60_img128.h5",
+  "n_samples": 2000,
+  "stride": 5,
+  "image_size": 128,
+  "patch_size": 8,
+  "env": "reacher",
+  "Z_dim": 192,
+  "state_dim": 6,
+  "metrics": {
+    "latent_effective_rank_pr": 27.082852289495943,
+    "latent_twonn_intrinsic_dim": 0.1963452550769002,
+    "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+    "env_state_effective_rank_pr": 4.065399052044219,
+    "mi_z_envstate_nats": 3.396725378188389,
+    "probe_linear_r2": 0.8063082088772364,
+    "probe_linear_r2_per_dim": [
+      0.9569194184658814,
+      0.9273298322822581,
+      0.9150088631993243,
+      0.877793450218952,
+      0.6873655802792293,
+      0.47343210881777364
+    ],
+    "probe_mlp_r2": 0.7985034087223344,
+    "probe_mlp_r2_per_dim": [
+      0.9545282657043999,
+      0.9216522378768716,
+      0.9083962849620726,
+      0.8723144113781299,
+      0.6727801083012804,
+      0.4613491441112523
+    ],
+    "mi_z_znext_nats": 5.253440046996388
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/ckpt_epoch0.pt",
+  "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/tworoom_expert_n50_T60_img128.h5",
+  "n_samples": 200,
+  "stride": 5,
+  "image_size": 128,
+  "patch_size": 8,
+  "env": "tworoom",
+  "Z_dim": 192,
+  "state_dim": 10,
+  "metrics": {
+    "latent_effective_rank_pr": 8.021385636799145,
+    "latent_twonn_intrinsic_dim": 0.1890075795297347,
+    "env_state_twonn_intrinsic_dim": 3.2109817830575436,
+    "env_state_effective_rank_pr": 2.558776872651761,
+    "mi_z_envstate_nats": 0.6792356144478289,
+    "mi_z_znext_nats": 0.42521414305675975
+  }
+}

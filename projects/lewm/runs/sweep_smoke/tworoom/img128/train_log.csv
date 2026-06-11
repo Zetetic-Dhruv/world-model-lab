@@ -1,0 +1,2 @@
+step,epoch,status,loss,loss_pred,loss_sigreg,z_std,z_mean_abs,lr,nan_rate,recoveries,wallclock_s,val_L_pred,val_L_identity,val_pred_vs_identity_ratio
+57,0,val_epoch,,,,,,,,,129.30611896514893,0.5896303205955319,0.024574640347826773,23.99344658761914

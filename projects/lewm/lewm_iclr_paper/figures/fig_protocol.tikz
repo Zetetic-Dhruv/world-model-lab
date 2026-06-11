@@ -1,0 +1,35 @@
+\begin{tikzpicture}[
+  node distance=0.65cm and 0.45cm,
+  box/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=0.7cm, font=\small},
+  fail/.style={draw, rounded corners, align=center, inner sep=3pt, font=\scriptsize},
+  arr/.style={-{Stealth[length=2.4mm]}, thick},
+  farr/.style={-{Stealth[length=2mm]}, dashed}
+]
+\node[box, minimum width=1.9cm] (claim) {Metric\\claim};
+\node[box, right=of claim, minimum width=2.25cm] (c0) {1. Training\\trajectory};
+\node[box, right=of c0, minimum width=2.35cm] (c1) {2. Estimator\\geometry};
+\node[box, right=of c1, minimum width=2.1cm] (c2) {3. Episode\\split};
+\node[box, right=of c2, minimum width=2.35cm] (c3) {4. Input baseline\\and power};
+\node[box, right=of c3, minimum width=2.0cm] (report) {Report\\claim};
+
+\draw[arr] (claim) -- (c0);
+\draw[arr] (c0) -- (c1);
+\draw[arr] (c1) -- (c2);
+\draw[arr] (c2) -- (c3);
+\draw[arr] (c3) -- (report);
+
+\node[fail, below=0.75cm of c0, text width=2.15cm] (f0) {rank still rising\\at epoch 99};
+\node[fail, below=0.75cm of c1, text width=2.2cm] (f1) {KSG moves while\\probe is flat};
+\node[fail, below=0.75cm of c2, text width=2.2cm] (f2) {frame split memorizes\\episode offsets};
+\node[fail, below=0.75cm of c3, text width=2.2cm] (f3) {raw pixels fail\\when underpowered};
+\node[fail, below=0.75cm of report, text width=2.2cm] (redesign) {withdraw or\\redesign};
+
+\draw[farr] (c0) -- (f0);
+\draw[farr] (c1) -- (f1);
+\draw[farr] (c2) -- (f2);
+\draw[farr] (c3) -- (f3);
+\draw[farr] (f0) |- (redesign);
+\draw[farr] (f1) |- (redesign);
+\draw[farr] (f2) |- (redesign);
+\draw[farr] (f3) |- (redesign);
+\end{tikzpicture}

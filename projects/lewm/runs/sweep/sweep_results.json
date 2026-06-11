@@ -1,0 +1,188 @@
+[
+  {
+    "env": "reacher",
+    "image_size": 64,
+    "cell_dir": "sweep/reacher/img64",
+    "diagnostics": {
+      "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img64/ckpt_epoch9.pt",
+      "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60.h5",
+      "n_samples": 2000,
+      "stride": 5,
+      "image_size": 64,
+      "patch_size": 4,
+      "env": "reacher",
+      "Z_dim": 192,
+      "state_dim": 6,
+      "metrics": {
+        "latent_effective_rank_pr": 11.944904397182148,
+        "latent_twonn_intrinsic_dim": 0.18099365070224954,
+        "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+        "env_state_effective_rank_pr": 4.06539905204422,
+        "mi_z_envstate_nats": 3.8257898388875606,
+        "mi_z_znext_nats": 5.44614897359368
+      }
+    },
+    "eval": {
+      "success_rate": 1.0,
+      "tau": 6.721040964126587,
+      "near_mean": 1.8217559218406678,
+      "unrelated_mean": 19.50442138314247,
+      "tau_gap_factor": 10.706385608142046
+    }
+  },
+  {
+    "env": "reacher",
+    "image_size": 96,
+    "cell_dir": "sweep/reacher/img96",
+    "diagnostics": {
+      "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img96/ckpt_epoch9.pt",
+      "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img96.h5",
+      "n_samples": 2000,
+      "stride": 5,
+      "image_size": 96,
+      "patch_size": 6,
+      "env": "reacher",
+      "Z_dim": 192,
+      "state_dim": 6,
+      "metrics": {
+        "latent_effective_rank_pr": 11.347167390202717,
+        "latent_twonn_intrinsic_dim": 0.18286821843465464,
+        "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+        "env_state_effective_rank_pr": 4.06539905204422,
+        "mi_z_envstate_nats": 3.4999454306808673,
+        "mi_z_znext_nats": 4.941055938101684
+      }
+    },
+    "eval": {
+      "success_rate": 0.9666666666666667,
+      "tau": 2.5138403892517087,
+      "near_mean": 0.8432159294374287,
+      "unrelated_mean": 20.186503928899764,
+      "tau_gap_factor": 23.939898695186727
+    }
+  },
+  {
+    "env": "reacher",
+    "image_size": 128,
+    "cell_dir": "sweep/reacher/img128",
+    "diagnostics": {
+      "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img128/ckpt_epoch9.pt",
+      "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img128.h5",
+      "n_samples": 2000,
+      "stride": 5,
+      "image_size": 128,
+      "patch_size": 8,
+      "env": "reacher",
+      "Z_dim": 192,
+      "state_dim": 6,
+      "metrics": {
+        "latent_effective_rank_pr": 12.08349843619088,
+        "latent_twonn_intrinsic_dim": 0.18033757104498288,
+        "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+        "env_state_effective_rank_pr": 4.06539905204422,
+        "mi_z_envstate_nats": 3.474861051729258,
+        "mi_z_znext_nats": 5.036999052159771
+      }
+    },
+    "eval": {
+      "success_rate": 0.9666666666666667,
+      "tau": 1.7512059628963403,
+      "near_mean": 0.7264357200823724,
+      "unrelated_mean": 19.108651208877564,
+      "tau_gap_factor": 26.304669058276463
+    }
+  },
+  {
+    "env": "reacher",
+    "image_size": 160,
+    "cell_dir": "sweep/reacher/img160",
+    "diagnostics": {
+      "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img160/ckpt_epoch9.pt",
+      "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img160.h5",
+      "n_samples": 2000,
+      "stride": 5,
+      "image_size": 160,
+      "patch_size": 10,
+      "env": "reacher",
+      "Z_dim": 192,
+      "state_dim": 6,
+      "metrics": {
+        "latent_effective_rank_pr": 12.57690437610362,
+        "latent_twonn_intrinsic_dim": 0.1886674426541995,
+        "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+        "env_state_effective_rank_pr": 4.06539905204422,
+        "mi_z_envstate_nats": 3.5062318781567443,
+        "mi_z_znext_nats": 4.928839447967182
+      }
+    },
+    "eval": {
+      "success_rate": 1.0,
+      "tau": 6.368545055389404,
+      "near_mean": 0.7624968837946653,
+      "unrelated_mean": 20.299931222200392,
+      "tau_gap_factor": 26.622969422740635
+    }
+  },
+  {
+    "env": "reacher",
+    "image_size": 192,
+    "cell_dir": "sweep/reacher/img192",
+    "diagnostics": {
+      "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img192/ckpt_epoch9.pt",
+      "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img192.h5",
+      "n_samples": 2000,
+      "stride": 5,
+      "image_size": 192,
+      "patch_size": 12,
+      "env": "reacher",
+      "Z_dim": 192,
+      "state_dim": 6,
+      "metrics": {
+        "latent_effective_rank_pr": 11.693728051542408,
+        "latent_twonn_intrinsic_dim": 0.21516410834707855,
+        "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+        "env_state_effective_rank_pr": 4.06539905204422,
+        "mi_z_envstate_nats": 3.4080751040635535,
+        "mi_z_znext_nats": 4.899081575468955
+      }
+    },
+    "eval": {
+      "success_rate": 1.0,
+      "tau": 4.883080244064331,
+      "near_mean": 0.36258613914251325,
+      "unrelated_mean": 18.891351932287215,
+      "tau_gap_factor": 52.10169361951818
+    }
+  },
+  {
+    "env": "reacher",
+    "image_size": 224,
+    "cell_dir": "sweep/reacher/img224",
+    "diagnostics": {
+      "ckpt": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep/reacher/img224/ckpt_epoch9.pt",
+      "h5": "/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/reacher_weakpolicy_n500_T60_img224.h5",
+      "n_samples": 2000,
+      "stride": 5,
+      "image_size": 224,
+      "patch_size": 14,
+      "env": "reacher",
+      "Z_dim": 192,
+      "state_dim": 6,
+      "metrics": {
+        "latent_effective_rank_pr": 12.875850950722747,
+        "latent_twonn_intrinsic_dim": 0.18843386300025,
+        "env_state_twonn_intrinsic_dim": 3.8657712866577416,
+        "env_state_effective_rank_pr": 4.06539905204422,
+        "mi_z_envstate_nats": 3.5026333875182667,
+        "mi_z_znext_nats": 5.028897191004337
+      }
+    },
+    "eval": {
+      "success_rate": 0.9666666666666667,
+      "tau": 4.314612030982971,
+      "near_mean": 0.8470209246501327,
+      "unrelated_mean": 17.142911368608473,
+      "tau_gap_factor": 20.239064785429544
+    }
+  }
+]

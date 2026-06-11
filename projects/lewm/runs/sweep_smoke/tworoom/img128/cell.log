@@ -1,0 +1,58 @@
+# /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/bin/python -u train.py --path-c --env tworoom --image-size 128 --patch-size auto --n-episodes 50 --path-c-episode-length 60 --epochs 1 --batch-size 32 --arch-preset tiny --out-dir /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128 --device cpu --no-wandb --log-every 100 --seed 42
+[init] device=cpu
+[data] generating 50 trajectories × 60 env steps @ 128×128... (env=tworoom policy=expert)
+/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/lib/python3.11/site-packages/gymnasium/utils/passive_env_checker.py:129: UserWarning: [33mWARN: The obs returned by the `reset()` method was expecting a numpy array, actual type: <class 'torch.Tensor'>[0m
+  logger.warn(
+/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/lib/python3.11/site-packages/gymnasium/spaces/box.py:415: UserWarning: [33mWARN: Casting input x to numpy array.[0m
+  gym.logger.warn("Casting input x to numpy array.")
+/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/lib/python3.11/site-packages/gymnasium/utils/passive_env_checker.py:129: UserWarning: [33mWARN: The obs returned by the `step()` method was expecting a numpy array, actual type: <class 'torch.Tensor'>[0m
+  logger.warn(
+[data] wrote data/tworoom_expert_n50_T60_img128.h5
+[split] train=45 eps (1845 windows)  val=5 eps (205 windows)
+[path-c] action_dim=10  history_size=3  stride=5
+[split] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/splits.npz
+[data] dataset windows=1845 batches/epoch=57 total_steps=57  | val_batches=7
+[model] preset=tiny  params=5,578,560  (enc d=6 h=3  proj_h=384  pred d=4 h=8×24 mlp=576)
+[opt] AdamW lr=5e-05 wd=0.001 warmup=1.0% total_steps=57
+[train] epochs=1 batch=32 λ=0.09 M=1024
+[epoch 0] done in 121.8s; stats={'step': 57, 'snapshots': 3, 'snapshot_steps': [30, 40, 50], 'nan_count': 0, 'nan_window': 57, 'nan_rate': 0.0, 'recovery_count': 0, 'escalation_count': 0, 'quarantined': 0, 'aborted': False}
+[val   ep 0] L_pred=0.5896  L_identity=0.0246  P/I_ratio=23.993  z_norm=9.86  z_std=0.105
+[ckpt] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/ckpt_epoch0.pt
+[done] total wallclock=129.4s
+
+# /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/bin/python -u eval_planning.py --ckpt /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/ckpt_epoch0.pt --h5 /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/tworoom_expert_n50_T60_img128.h5 --splits /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/splits.npz --n-episodes 5 --tau-samples 80 --seed 2026 --device cpu --env tworoom
+[eval] device=cpu  ckpt=/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/ckpt_epoch0.pt
+[tau] calibrating τ from 80 heldout pairs (offset=25)...
+[tau] near_mean=2.215  near_p95=4.239  unrelated_mean=2.244  unrelated_min=0.498
+[tau] tau_valley=4.239  tau_p95_near=4.239
+[tau] using τ = 4.239
+[plan] H=5  action_block=5  N=300  K=30  T=30  history_size=3
+/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/lib/python3.11/site-packages/gymnasium/utils/passive_env_checker.py:129: UserWarning: [33mWARN: The obs returned by the `reset()` method was expecting a numpy array, actual type: <class 'torch.Tensor'>[0m
+  logger.warn(
+/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/lib/python3.11/site-packages/gymnasium/spaces/box.py:415: UserWarning: [33mWARN: Casting input x to numpy array.[0m
+  gym.logger.warn("Casting input x to numpy array.")
+/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/lib/python3.11/site-packages/gymnasium/utils/passive_env_checker.py:129: UserWarning: [33mWARN: The obs returned by the `step()` method was expecting a numpy array, actual type: <class 'torch.Tensor'>[0m
+  logger.warn(
+[ep   5/5] traj=13 init=31 goal=56  actual_dist=3.034  rec_goal=8.7  success=True  rate=1.000  (22.3s)
+
+=== PATH C RESULTS ===
+  success_rate (latent < τ=4.239): 1.000  (5/5)
+  actual_dist:  mean=2.871  med=3.034  min=1.848  max=3.794
+  agent_to_recorded_goal_dist (diagnostic): mean=28.012  med=26.094
+  agent_to_target_dist (old metric):       mean=121.618  med=137.639
+  τ-calibration: near_mean=2.215  unrelated_mean=2.244
+  total wallclock: 22.3s
+  saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/path_c_eval.npz
+
+# /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/.venv311/bin/python -u tools/run_diagnostics.py --ckpt /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/ckpt_epoch0.pt --h5 /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/data/tworoom_expert_n50_T60_img128.h5 --splits /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/splits.npz --out /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/diagnostics.json --n-samples 200 --device cpu
+[diag] device=cpu  ckpt=/Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/ckpt_epoch0.pt
+[diag] extracting 200 latent triples (stride=5)...
+[diag] Z=(200, 192)  Z_next=(200, 192)  env_state=(200, 10)
+[diag] running diagnostic_suite...
+[diag] saved → /Users/polaris/Documents/Epistemology and Zetesis/Projects/Machine Errors/JEPA/Robotics/lewm-vanilla/projects/lewm/runs/sweep_smoke/tworoom/img128/diagnostics.json
+  latent_effective_rank_pr: 8.0214
+  latent_twonn_intrinsic_dim: 0.1890
+  env_state_twonn_intrinsic_dim: 3.2110
+  env_state_effective_rank_pr: 2.5588
+  mi_z_envstate_nats: 0.6792
+  mi_z_znext_nats: 0.4252

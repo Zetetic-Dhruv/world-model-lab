@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "name": "camels-three-way",
+  "members": ["camels-us", "camels-dk", "camels-ind"],
+  "shared_schema": true,
+  "shift_axis": "country",
+  "pair_type": "cross-population",
+  "train_env": ["us", "dk"],
+  "ood_test_env": ["ind"],
+  "epistemic_state": {
+    "facts": ["Three CAMELS members share static-attribute schema and Daymet-equivalent forcings; US 671 / DK 3,330 / IND ~470 catchments at daily resolution."],
+    "hypotheses": [
+      "Transitivity holds: US→DK is approximately US→IND composed with IND→DK.",
+      "IND's monsoon-dominated regime introduces a mechanism shift orthogonal to the US↔DK covariate shift.",
+      "The asymmetry profile remains (3,3,2,0,2) for IND rather than monsoon dynamics forcing a profile extension."
+    ],
+    "intuitions": [
+      "Cross-CAMELS analyses spanning all admitted members (US/DK/IND/CL/AUS/BR/CH/GB) likely exist.",
+      "Monsoon-specific transfer-learning work likely exists."
+    ],
+    "unknowns": [
+      "Whether 'country' is the right environment axis or whether it confounds 'climate regime', 'measurement-network design', and 'culture-of-hydrological-practice' cannot be determined."
+    ]
+  },
+  "baselines": []
+}

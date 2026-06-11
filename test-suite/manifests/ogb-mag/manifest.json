@@ -1,0 +1,88 @@
+{
+  "schema_version": "0.1.0",
+  "name": "ogb-mag",
+  "version": "v1.0-2020",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://ogb.stanford.edu/docs/nodeprop/#ogbn-mag",
+    "host_type": "pypi",
+    "license": "ODC-BY",
+    "stability": "churning"
+  },
+  "domain": "academic.heterogeneous-citation",
+  "regime": "KG",
+  "data_origin": {"primary": "natural", "blend": "Microsoft Academic Graph snapshot (MAG deprecated 2022)"},
+  "asymmetry_profile": {"process": 0, "temporal": 2, "hierarchical": 2, "compositional": 0, "typed": 3},
+  "env_axis": {
+    "name": "year",
+    "field": "publication_year",
+    "values": ["≤2017", "2018", "≥2019"],
+    "shift_type": "concept",
+    "shift_mechanism": "publication-year-based split; ML category proliferation post-2017 may re-shape citation conditional",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "ogb-mag-year-split",
+    "ref": "Hu et al. 2020 NeurIPS (OGB paper)",
+    "splits": [
+      {"env_id": "≤2017", "purpose": "train", "ref": "self:edges"},
+      {"env_id": "2018", "purpose": "val", "ref": "self:edges"},
+      {"env_id": "≥2019", "purpose": "ood-test", "ref": "self:edges"}
+    ]
+  },
+  "scale": {"entities": 1939743, "events": 21111007, "raw_bytes": 838860800, "n_env_levels": 3},
+  "schema": {
+    "regime": "KG",
+    "node_types": [
+      {"name": "paper", "count_approx": 736389},
+      {"name": "author", "count_approx": 1134649},
+      {"name": "institution", "count_approx": 8740},
+      {"name": "field_of_study", "count_approx": 59965}
+    ],
+    "edge_types": [
+      "paper--cites--paper",
+      "author--writes--paper",
+      "author--affiliated_with--institution",
+      "paper--has_topic--field_of_study"
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["1.94M nodes / 21M edges / 4 node types / 4 relation types; year-based OGB standard split."],
+    "hypotheses": [
+      "Year-shift on MAG is a concept shift rather than a covariate shift: citation patterns themselves evolve (e.g., the rise of ML papers re-shapes the field-of-study graph), not merely the volume of papers.",
+      "The field-of-study taxonomy itself drifts across years, confounding the env with the concept-of-env."
+    ],
+    "intuitions": [
+      "The Microsoft Academic Graph deprecation (2022) likely has a downstream effect on OGB-MAG as a historical snapshot.",
+      "A heterogeneous-graph foundation-model literature probably emerged in 2023-25."
+    ],
+    "unknowns": [
+      "'Paper' as atomic unit is a representational commitment OGB-MAG forces — sub-paper structure (claims, sections, figures) is invisible, and whether finer atomism would re-shape the cross-year shift cannot be determined from this data."
+    ],
+    "boundary": "C=0; no within-paper compositional handle."
+  },
+  "representational_commitments": [
+    "Paper-as-atom — sections/claims/figures invisible",
+    "Field-of-study taxonomy is the MAG curatorial snapshot",
+    "4 node types is OGB's selection from MAG's richer schema",
+    "2019 cutoff fixes the historical horizon"
+  ],
+  "derived_from": ["microsoft-academic-graph (deprecated 2022)"],
+  "member_of": ["ogb-mag-year-split"],
+  "checksums": {
+    "raw/ogb-mag/relations/paper___cites___paper/edge.csv.gz": "sha256:5875efe73c4bf68d7499b5186008f335d9dce29b39b41fa4658f1864122f6307",
+    "raw/ogb-mag/relations/author___writes___paper/edge.csv.gz": "sha256:c29f6dd80d7f039e40e2bc2d7b7281cdc8f09585e5b166c14a97e6f9b2d3a6d0",
+    "raw/ogb-mag/relations/paper___has_topic___field_of_study/edge.csv.gz": "sha256:5e98dd3ad2f29eec00fb0a4c198cf35f623cfa7672b0635a1691bf892e7fb43b",
+    "raw/ogb-mag/relations/author___affiliated_with___institution/edge.csv.gz": "sha256:c746058c1dde1d16452bea0bb8745effd5db748d365aa70b5d7abc9d90560896",
+    "raw/ogb-mag/node-feat/paper/node_year.csv.gz": "sha256:204c49c872a02c927557c5fed679edcc9428e937e73189c97bbb756b41b34f62",
+    "derived/ogb-mag/edges.parquet": "sha256:cbafdc646bd5412a684d027b9a80807916d6a12c8dc46817638431c394c247b1",
+    "derived/ogb-mag/nodes.parquet": "sha256:ecce443e1ad45eda2046389fd6f12599d0909780bb6ed909a00d34a856d6780e"
+  },
+  "baselines": [{
+    "name": "R-GCN",
+    "ref": "Hu et al. 2020 NeurIPS",
+    "metric": "test_accuracy",
+    "value": 0.466,
+    "env": "≥2019"
+  }]
+}

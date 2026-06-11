@@ -1,0 +1,72 @@
+{
+  "schema_version": "0.1.0",
+  "name": "galaxy-zoo-kids-desi",
+  "version": "v1-2023",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://data.galaxyzoo.org/",
+    "host_type": "data-galaxyzoo",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "astronomy.morphology-cross-instrument",
+  "regime": "blob",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 1, "temporal": 0, "hierarchical": 2, "compositional": 2, "typed": 2},
+  "env_axis": {
+    "name": "instrument",
+    "field": "survey",
+    "values": ["KiDS", "DESI"],
+    "shift_type": "covariate",
+    "shift_mechanism": "same galaxies imaged by two surveys (KiDS deeper/higher-res; DESI shallower/lower-res) on the GAMA fields",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "kids-desi-cross-instrument",
+    "ref": "Walmsley et al. 2024 (Zoobot cross-instrument); Galaxy Zoo DESI papers",
+    "splits": [
+      {"env_id": "kids-train", "purpose": "train"},
+      {"env_id": "desi-test", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 3635309, "n_env_levels": 2},
+  "schema": {
+    "regime": "blob",
+    "entity_types": [
+      {"name": "galaxy", "key": "objid"},
+      {"name": "image", "key": "image_id", "parent_type": "galaxy"}
+    ],
+    "metadata_fields": [
+      {"name": "survey", "type": "categorical"},
+      {"name": "morphology_labels", "type": "categorical[multi]", "source": "citizen-science vote distribution"},
+      {"name": "redshift", "type": "float"}
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["Same galaxies imaged by KiDS (deeper, higher-res) and DESI (shallower, lower-res) on GAMA fields; Zoobot CNN baseline."],
+    "hypotheses": [
+      "Morphology classification trained on KiDS does not fully transfer to DESI of the same galaxies, because the instrument gap produces a physical effect (different features visible at different depths) rather than a pure covariate shift.",
+      "Cross-instrument shift on the same galaxies acts as a label-stability test, so method behavior here bounds generalization to new galaxies only weakly."
+    ],
+    "intuitions": [
+      "Zoobot extensions from 2024-25 and Galaxy Zoo DESI follow-ups likely exist.",
+      "LSST early-release morphology classifications that effectively benchmark KiDS/DESI models probably exist."
+    ],
+    "unknowns": [
+      "Cross-instrument shift on the same galaxies decouples population shift from image-formation shift — perhaps the cleanest such pair in the corpus — but there is no established label for this 'label-stable observation shift'.",
+      "Citizen-science annotator disagreement is not separately exposed."
+    ],
+    "boundary": "Two-instrument only; cannot generalize to three-way (with LSST or Euclid) without additional data."
+  },
+  "representational_commitments": [
+    "Two-survey selection (KiDS, DESI)",
+    "GAMA field restriction",
+    "Citizen-science labels aggregated as vote distribution",
+    "Image-as-unit (catalog cross-match resolves to galaxy)"
+  ],
+  "derived_from": ["kids-survey", "desi-legacy-imaging"],
+  "member_of": ["kids-desi-cross-instrument"],
+  "checksums": {},
+  "materialization_status": "Galaxy Zoo 1 DR table5 CSV (3.6 MB) only — early historical release. Galaxy Zoo DESI + KiDS volunteer catalogs deferred (need either the data.galaxyzoo.org direct file list or Walmsley 2024 Zoobot inference outputs).",
+  "baselines": []
+}

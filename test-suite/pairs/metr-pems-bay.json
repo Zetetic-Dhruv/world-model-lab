@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "name": "metr-pems-bay",
+  "members": ["metr-la", "pems-bay"],
+  "shared_schema": true,
+  "shift_axis": "city",
+  "pair_type": "cross-population",
+  "train_env": ["la"],
+  "ood_test_env": ["bay"],
+  "epistemic_state": {
+    "facts": ["LA 207 sensors / 4 months (Mar-Jun 2012); Bay 325 sensors / 6 months (Jan-May 2017); shared 5-min speed schema."],
+    "hypotheses": [
+      "LA→Bay is a weak shift (both California freeway), exposing the threshold below which cross-city is indistinguishable from cross-fold.",
+      "Pair directionality is load-bearing: LA→Bay differs from Bay→LA.",
+      "The 5-year temporal offset injects incidental shift orthogonal to the spatial axis."
+    ],
+    "intuitions": [
+      "Liu 2023 CIKM and ECML/PKDD 2024 cross-city baselines likely exist.",
+      "Cross-PEMS foundation-model results from 2024-25 likely exist."
+    ],
+    "unknowns": [
+      "There is no established primitive for 'directional asymmetry of transfer' (A→B ≠ B→A); the pair relation is undirected by default."
+    ]
+  },
+  "baselines": []
+}

@@ -1,0 +1,84 @@
+{
+  "schema_version": "0.1.0",
+  "name": "ogbn-arxiv",
+  "version": "v1-2020",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv",
+    "host_type": "pypi",
+    "license": "ODC-BY",
+    "stability": "stable"
+  },
+  "domain": "academic.citation",
+  "regime": "KG",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 2, "hierarchical": 2, "compositional": 0, "typed": 3},
+  "env_axis": {
+    "name": "year",
+    "field": "publication_year",
+    "values": ["≤2017", "2018", "≥2019"],
+    "shift_type": "concept",
+    "shift_mechanism": "publication-year-based split; MAG-derived citation graph",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "ogbn-arxiv-year-split",
+    "ref": "Hu et al. 2020 NeurIPS",
+    "splits": [
+      {"env_id": "≤2017", "purpose": "train"},
+      {"env_id": "2018", "purpose": "val"},
+      {"env_id": "≥2019", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": 169343, "events": 1166243, "raw_bytes": 175000000, "n_env_levels": 3},
+  "schema": {
+    "regime": "KG",
+    "node_types": [{"name": "paper", "count_approx": 169343}],
+    "edge_types": ["paper--cites--paper"]
+  },
+  "epistemic_state": {
+    "facts": ["170k CS arXiv papers as citation network; year split (≤2017 / 2018 / ≥2019); MAG-derived."],
+    "hypotheses": [
+      "The 2017-2018 boundary is a natural break (driven by an arXiv categorization shift and volume jump), not merely a convenient cut point.",
+      "Method degradation does not track the time gap monotonically (2019 vs 2020 vs 2021) but is threshold-like, jumping at the categorization break."
+    ],
+    "intuitions": [
+      "Extensions of ogbn-arxiv with later test years likely already exist in the literature.",
+      "ogbl-citation2 (similar temporal structure on full arXiv) probably provides a useful cross-comparison."
+    ],
+    "unknowns": [
+      "The field-of-study taxonomy itself evolved post-2017 (ML categories proliferated); whether the resulting shift is concept shift (taxonomy change) or covariate shift (volume) cannot be determined from the data.",
+      "The underlying MAG snapshot predates MAG's 2022 deprecation, so the source data is partially dated."
+    ],
+    "boundary": "C=0; the 170k-paper scale limits fine-grained per-environment analysis."
+  },
+  "representational_commitments": [
+    "Paper-as-atom (no sub-paper structure)",
+    "40-class CS subject taxonomy (subset of MAG)",
+    "2019 cutoff fixes the historical horizon",
+    "MAG snapshot dates from pre-2020"
+  ],
+  "derived_from": ["microsoft-academic-graph", "arxiv-cs"],
+  "member_of": ["ogbn-arxiv-year-split", "ogb-application-suite"],
+  "curation_provenance": {
+    "curator": "Hu et al. (Stanford)",
+    "ref": "Hu et al. 2020 NeurIPS",
+    "split_rule": "Year-based: ≤2017 / 2018 / ≥2019",
+    "motivation": "Future-paper-classification as natural OOD"
+  },
+  "checksums": {
+    "raw/ogbn-arxiv/edge.csv.gz": "sha256:47629e986116407d27eff4c9d2e923f06bf5da5c85cbae93b660f530bc9355df",
+    "raw/ogbn-arxiv/node-feat.csv.gz": "sha256:60a844c7aff2f129335d34da2f6b9271bd1cac03aff8c70c229e6f0d13624718",
+    "raw/ogbn-arxiv/node-label.csv.gz": "sha256:b06e7cf75d909de66ce49bc4188a6dc525224f85dd6dcb36137de3d9321830d1",
+    "raw/ogbn-arxiv/node_year.csv.gz": "sha256:fb97e19d6003deb09197f6df6b10ea1ab86ee49d98885836c3c857ab58d897f3",
+    "derived/ogbn-arxiv/edges.parquet": "sha256:8969f39059633d10466b01f3473670c73362f21725ed378a484550386fe67716",
+    "derived/ogbn-arxiv/nodes.parquet": "sha256:57bbbe0e004cdbb393ced065fec00af15c8ab379a7b360acbcde59c460aa591d"
+  },
+  "baselines": [{
+    "name": "R-GCN",
+    "ref": "Hu et al. 2020 NeurIPS",
+    "metric": "test_accuracy",
+    "value": 0.466,
+    "env": "≥2019"
+  }]
+}

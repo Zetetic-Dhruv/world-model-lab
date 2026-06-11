@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test Suite Dataset Manifest",
+  "description": "Machine-readable manifest for a single dataset in the test suite benchmark. Encodes the ten inclusion criteria as required structure. The manifest is the dataset's source of record — every revision is a Git commit.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "name",
+    "version",
+    "snapshot_date",
+    "source",
+    "domain",
+    "regime",
+    "data_origin",
+    "asymmetry_profile",
+    "env_axis",
+    "ood_protocol",
+    "scale",
+    "schema",
+    "epistemic_state",
+    "representational_commitments",
+    "checksums"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Semver of the test suite manifest schema (not the dataset version)",
+      "examples": ["0.1.0"]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Kebab-case unique identifier"
+    },
+    "version": {
+      "type": "string",
+      "description": "Source-side version pin (e.g., '2025.04.essd', 'v1.0', 'release-2023-12')"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 date when WE pulled the data — distinct from source version"
+    },
+    "source": {
+      "type": "object",
+      "required": ["url", "host_type", "license", "stability"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "doi": {"type": "string"},
+        "host_type": {
+          "type": "string",
+          "description": "Stable identifier for the source host",
+          "examples": ["zenodo", "harvard-dataverse", "ncar", "kaggle", "github", "pypi", "huggingface", "gcs-public", "ncei", "physionet", "cern-opendata", "tum-mediatum", "uci"]
+        },
+        "license": {"type": "string"},
+        "stability": {
+          "type": "string",
+          "enum": ["stable", "churning", "live-updating", "closed-after-period"],
+          "description": "stable=frozen release; churning=periodic re-releases; live-updating=continuously appended; closed-after-period=was live, now frozen"
+        }
+      }
+    },
+    "domain": {
+      "type": "string",
+      "description": "Taxonomy slug, e.g., 'earth-science.hydrology', 'biomedical.kg', 'physics.hep'"
+    },
+    "regime": {
+      "type": "string",
+      "enum": ["event", "KG", "blob", "array"],
+      "description": "Physical storage regime. Determines what gets materialized (traces.parquet, edges.parquet, metadata-only, Zarr-native)"
+    },
+    "data_origin": {
+      "type": "object",
+      "required": ["primary"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {
+          "type": "string",
+          "enum": ["natural", "simulator", "synthetic", "mixed"],
+          "description": "natural=real measurement (admissible as primary data); simulator=physics/process-model output (claims conditional on the simulator's structural assumptions); synthetic=constructed shift (methodological probe only, never primary evidence); mixed=blend"
+        },
+        "blend": {
+          "type": "string",
+          "description": "Free-text describing the mixing when primary=mixed (e.g., 'real objects + simulated photometry', 'reanalysis = observation + assimilation model')"
+        }
+      }
+    },
+    "asymmetry_profile": {
+      "type": "object",
+      "required": ["process", "temporal", "hierarchical", "compositional", "typed"],
+      "additionalProperties": false,
+      "properties": {
+        "process": {"type": "integer", "minimum": 0, "maximum": 3},
+        "temporal": {"type": "integer", "minimum": 0, "maximum": 3},
+        "hierarchical": {"type": "integer", "minimum": 0, "maximum": 3},
+        "compositional": {"type": "integer", "minimum": 0, "maximum": 3},
+        "typed": {"type": "integer", "minimum": 0, "maximum": 3}
+      },
+      "description": "0=absent, 1=weak, 2=structurally important, 3=dominant. See schemas/asymmetry_profile.md for the full scoring guide."
+    },
+    "env_axis": {
+      "type": "object",
+      "required": ["name", "shift_type", "shift_mechanism"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "description": "Short label, e.g., 'country', 'hospital', 'scaffold'"},
+        "field": {"type": "string", "description": "Column/field name in the data, if applicable"},
+        "values": {"type": "array", "items": {"type": "string"}},
+        "shift_type": {
+          "type": "string",
+          "enum": ["covariate", "concept", "label", "mechanism"]
+        },
+        "shift_mechanism": {"type": "string", "description": "Free-text describing the mechanism"},
+        "pair_with": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Sibling dataset names that complete a pair. Undirected; direction lives in pair.ood_protocol"
+        }
+      }
+    },
+    "ood_protocol": {
+      "type": "object",
+      "required": ["name", "ref", "splits"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "ref": {"type": "string", "description": "Canonical citation"},
+        "splits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["env_id", "purpose"],
+            "additionalProperties": false,
+            "properties": {
+              "env_id": {"type": "string"},
+              "purpose": {
+                "type": "string",
+                "enum": ["train", "val", "ood-val", "ood-test", "test"]
+              },
+              "ref": {"type": "string", "description": "Optional pointer to data location"}
+            }
+          }
+        }
+      }
+    },
+    "scale": {
+      "type": "object",
+      "required": ["entities", "raw_bytes", "events", "n_env_levels"],
+      "additionalProperties": false,
+      "properties": {
+        "entities": {"type": ["integer", "null"], "minimum": 0, "description": "Entity count from authoritative source (paper/dataset card); null if not pinned"},
+        "events": {"type": ["integer", "null"], "minimum": 0, "description": "Null until verified by scripts/validate (counts rows in traces.parquet for event-regime; edges for KG; images for blob; N/A for array)"},
+        "raw_bytes": {"type": ["integer", "null"], "minimum": 0, "description": "Null until materialized; populated by scripts/validate from raw/ directory listing"},
+        "n_env_levels": {"type": ["integer", "null"], "minimum": 0, "description": "Null when env-cardinality is undefined pre-materialization (e.g., GHCN station × era cross-product)"}
+      }
+    },
+    "schema": {
+      "type": "object",
+      "description": "Regime-dependent payload structure. For event: entity_types/event_types/static_attributes. For KG: node_types/edge_types. For blob: metadata fields. For array: dimensions/variables."
+    },
+    "epistemic_state": {
+      "type": "object",
+      "required": ["facts", "hypotheses", "intuitions", "unknowns", "boundary"],
+      "additionalProperties": false,
+      "properties": {
+        "facts": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Established anchor facts about the dataset. Keep short."
+        },
+        "hypotheses": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Testable, declarative claims the dataset specifically enables"
+        },
+        "intuitions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Declarative expectations about likely-existing external work not yet incorporated"
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "What cannot yet be determined, or is not yet represented in the schema"
+        },
+        "boundary": {
+          "type": "string",
+          "description": "One-line statement of what this dataset cannot evidence — its distinctive contribution to the benchmark's coverage"
+        }
+      }
+    },
+    "representational_commitments": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Modeling choices baked into the data and invisible from inside it (catchment partition, paper-as-atom, etc.)"
+    },
+    "curation_provenance": {
+      "type": "object",
+      "description": "For curated suites (WILDS, GOOD, DrugOOD, TDC): the curator's choices",
+      "additionalProperties": false,
+      "properties": {
+        "curator": {"type": "string"},
+        "ref": {"type": "string"},
+        "split_rule": {"type": "string"},
+        "motivation": {"type": "string"}
+      }
+    },
+    "derived_from": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Underlying-data overlap (e.g., TDC and DrugOOD both derive from ChEMBL); prevents double-counting evidence"
+    },
+    "member_of": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Pairs and/or suites this dataset belongs to"
+    },
+    "checksums": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+      "description": "Relative path → sha256 hash. Empty until materialized; populated by scripts/validate."
+    },
+    "baselines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "ref", "metric", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string"},
+          "ref": {"type": "string"},
+          "metric": {"type": "string"},
+          "value": {"type": "number"},
+          "env": {"type": "string"}
+        }
+      }
+    }
+  }
+}

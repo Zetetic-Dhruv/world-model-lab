@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test Suite Event Row",
+  "description": "Unified columnar schema for event-like data (regime=event). One row = one event/observation tied to an entity, optionally timestamped, with explicit env tagging. Canonical encoding: Parquet with this row shape. JSON Schema here for validation + documentation.",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "dataset",
+    "entity_id",
+    "entity_type",
+    "event_type",
+    "env_id",
+    "env_axis",
+    "split",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "description": "Globally unique row id (UUID v4 or stable hash of source fields)"
+    },
+    "dataset": {
+      "type": "string",
+      "description": "Manifest name this row belongs to"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Stable identifier within the dataset (catchment_id, patient_id, paper_id, ...)"
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "parent_id": {
+      "type": ["string", "null"],
+      "description": "Hierarchical parent (sub-basin parent, hospital of patient). Null for flat entities."
+    },
+    "parent_type": {
+      "type": ["string", "null"]
+    },
+    "event_type": {
+      "type": "string",
+      "description": "daily_observation, lab, citation, relaxation_step, ..."
+    },
+    "t": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO-8601 timestamp. Null for atemporal regimes."
+    },
+    "t_order": {
+      "type": ["integer", "null"],
+      "description": "Logical ordering when t is absent (e.g., relaxation step number)"
+    },
+    "env_id": {
+      "type": "string",
+      "description": "Environment identifier (e.g., 'dk', 'hospital_42', 'scaffold_3')"
+    },
+    "env_axis": {
+      "type": "string",
+      "description": "Which env axis env_id is on (matches manifest.env_axis.name)"
+    },
+    "split": {
+      "type": "string",
+      "enum": ["train", "val", "ood-val", "ood-test", "test"]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Dataset-specific nested fields; schema per manifest.schema.event_types[].fields"
+    }
+  }
+}

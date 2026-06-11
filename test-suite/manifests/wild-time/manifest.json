@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1.0",
+  "name": "wild-time",
+  "version": "v1-2022",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://github.com/huaxiuyao/Wild-Time",
+    "host_type": "github",
+    "license": "MIT",
+    "stability": "stable"
+  },
+  "domain": "temporal-ood.mixed-suite",
+  "regime": "blob",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 3, "hierarchical": 1, "compositional": 1, "typed": 2},
+  "env_axis": {
+    "name": "time",
+    "field": "year",
+    "values": ["sub-dataset-specific"],
+    "shift_type": "concept",
+    "shift_mechanism": "5 sub-datasets each with own temporal-drift mechanism (fashion / satellite-imaging-tech / clinical-practice / news-editorial / scientific-field)",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "wild-time-eval",
+    "ref": "Yao et al. 2022 NeurIPS",
+    "splits": [
+      {"env_id": "past-train", "purpose": "train", "ref": "sub-dataset-specific"},
+      {"env_id": "future-test", "purpose": "ood-test", "ref": "sub-dataset-specific"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 4617089024, "n_env_levels": 5},
+  "schema": {
+    "regime": "blob",
+    "suite_note": "suite — 5 sub-datasets (Yearbook, FMoW, MIMIC-prognosis, HuffPost, arXiv). Each has its own profile and pair. Under the regime scheme, 'blob' covers image and text uniformly.",
+    "sub_datasets": ["yearbook", "fmow", "mimic-prognosis", "huffpost", "arxiv"]
+  },
+  "epistemic_state": {
+    "facts": ["5 sub-datasets (Yearbook, FMoW, MIMIC-prognosis, HuffPost, arXiv) sharing a chronological eval protocol; NeurIPS 2022; multi-task per sub-dataset (MIMIC = readmission + mortality)."],
+    "hypotheses": [
+      "Time-as-environment shifts are not mechanistically consistent across the 5 sub-datasets; each has its own incompatible drift mechanism rather than a shared method ordering at any given epoch.",
+      "The suite's published 'time generalization' claim holds only on the simpler sub-datasets (Yearbook) rather than uniformly across all 5."
+    ],
+    "intuitions": [
+      "A Wild-Time leaderboard with 2024-25 updates and foundation-model results on Yearbook likely exists.",
+      "Cross-comparisons with WILDS-Time and the TGB temporal axis probably exist (these are distinct projects despite naming overlap)."
+    ],
+    "unknowns": [
+      "'Temporal shift' is treated as a single primitive, but the underlying mechanism differs categorically across the 5 sub-datasets (fashion / satellite-tech / clinical-practice / editorial / scientific-field); there is no established label for shift-mechanism heterogeneity within a single environment axis. The Wild-Time framing presupposes their unification."
+    ],
+    "boundary": "A suite requiring descent to sub-dataset manifests before routing methods; suite-level claims about 'temporal generalization' do not hold without sub-dataset agreement."
+  },
+  "representational_commitments": [
+    "Time-as-env (suite-level commitment, untested for consistency across sub-datasets)",
+    "5 specific sub-datasets chosen as representative — selection itself is curatorial",
+    "Multi-task per sub-dataset (MIMIC readmission + mortality) bundled",
+    "MIMIC sub-dataset uses Wild-Time's derived clinical-features version, not raw MIMIC-III/IV (which are user-excluded from this corpus)"
+  ],
+  "derived_from": [],
+  "member_of": ["wild-time-temporal-suite"],
+  "checksums": {
+    "snapshots/wild-time/raw.tar": "sha256:e6e678e6761ec642027683feb72c3bbb5592464b180f948e20c42b6ff966eaac"
+  },
+  "materialization_status": "4 of 5 Wild-Time sub-datasets via Google Drive (per gdown file IDs hardcoded in wildtime/data/utils.py): Yearbook, FMoW, HuffPost, arXiv (2.5 GB alone), plus Drug-TDC. ~4.3 GB total. MIMIC requires PhysioNet credentialing (excluded).",
+  "baselines": []
+}

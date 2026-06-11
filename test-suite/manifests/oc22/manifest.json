@@ -1,0 +1,80 @@
+{
+  "schema_version": "0.1.0",
+  "name": "oc22",
+  "version": "v1-2023",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://dl.fbaipublicfiles.com/opencatalystproject/data/oc22.tar.gz",
+    "host_type": "gcs-public",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "chemistry.catalysis-oxides",
+  "regime": "event",
+  "data_origin": {"primary": "simulator", "blend": "DFT relaxations with oxide-appropriate exchange-correlation functional (different from OC20's PBE)"},
+  "asymmetry_profile": {"process": 2, "temporal": 0, "hierarchical": 1, "compositional": 3, "typed": 2},
+  "env_axis": {
+    "name": "composition-class",
+    "field": "composition_class",
+    "values": ["oxide"],
+    "shift_type": "covariate",
+    "shift_mechanism": "oxide catalysts vs OC20's metal catalysts; also different DFT functional",
+    "pair_with": ["oc20"]
+  },
+  "ood_protocol": {
+    "name": "oc20-to-oc22-cross-composition",
+    "ref": "Tran et al. 2023 ACS Catalysis (OC22 dataset paper)",
+    "splits": [
+      {"env_id": "oc20-train", "purpose": "train", "ref": "oc20:traces"},
+      {"env_id": "oc22-val", "purpose": "ood-test", "ref": "self:traces"}
+    ]
+  },
+  "scale": {"entities": 62331, "events": null, "raw_bytes": 57188597760, "n_env_levels": 1},
+  "schema": {
+    "regime": "event",
+    "entity_types": [
+      {"name": "system", "key": "system_id"},
+      {"name": "trajectory", "key": "trajectory_id", "parent_type": "system"}
+    ],
+    "event_types": [{
+      "name": "relaxation_step",
+      "fields": [
+        {"name": "step_index", "type": "int"},
+        {"name": "positions", "type": "tensor", "shape": "n_atoms x 3"},
+        {"name": "forces", "type": "tensor", "shape": "n_atoms x 3"},
+        {"name": "energy", "type": "float", "unit": "eV"}
+      ]
+    }],
+    "static_attributes": [
+      {"name": "oxide_composition", "type": "molecular_formula"},
+      {"name": "miller_index", "type": "tuple[int,int,int]"}
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["62k oxide-catalyst DFT relaxations; different exchange-correlation functional than OC20."],
+    "hypotheses": [
+      "Method ordering on OC20 does not preserve under OC20→OC22 transfer: the functional change re-ranks methods.",
+      "'Oxide vs metal' is a phase-space shift requiring a new primitive rather than a plain compositional shift."
+    ],
+    "intuitions": [
+      "The OC22 paper likely reports its own cross-OC20 baseline numbers, possibly updated by the 2024-25 literature.",
+      "Oxide-catalyst-specific transfer studies using experimental ground truth probably exist."
+    ],
+    "unknowns": [
+      "Whether the right env unit is the pair (OC20-train, OC22-test) or a joint env factor (functional × composition) cannot be settled: the pairing tacitly assumes the former, and testing that assumption requires the pair, which is circular."
+    ],
+    "boundary": "Same simulator caveat as OC20. Pair-only value: OC22 alone has too few samples for compositional analysis without OC20 anchoring."
+  },
+  "representational_commitments": [
+    "Oxide-appropriate XC functional fixed (not PBE)",
+    "Inherits OC20's catalyst-as-element-list representation",
+    "Single-cation oxides only — multi-cation systems excluded"
+  ],
+  "derived_from": [],
+  "member_of": ["oc-cross-composition"],
+  "checksums": {
+    "snapshots/oc22/raw.tar": "sha256:cc3044b00bb8fdfc6cb0667dc9768c3c0e63c04f19ce06c51adef03af6d98297"
+  },
+  "materialization_status": "Full OC22 (57 GB) — s2ef_total LMDBs (20 GB) + is2res LMDBs (114 MB) + trajectories (34 GB) + metadata + oc20_ref. URL pattern dl.fbaipublicfiles.com/opencatalystproject/data/oc22/<file> (the missing /oc22/ subdirectory in earlier attempts was the issue).",
+  "baselines": []
+}

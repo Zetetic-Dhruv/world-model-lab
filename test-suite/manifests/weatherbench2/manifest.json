@@ -1,0 +1,80 @@
+{
+  "schema_version": "0.1.0",
+  "name": "weatherbench2",
+  "version": "era5-1959-2023",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://weatherbench2.readthedocs.io/",
+    "host_type": "gcs-public",
+    "license": "CC-BY-4.0",
+    "stability": "churning"
+  },
+  "domain": "earth-science.atmospheric-reanalysis",
+  "regime": "array",
+  "data_origin": {"primary": "mixed", "blend": "ERA5 reanalysis = observations + assimilation model (data + sim blend)"},
+  "asymmetry_profile": {"process": 3, "temporal": 3, "hierarchical": 2, "compositional": 1, "typed": 3},
+  "env_axis": {
+    "name": "year",
+    "field": "year",
+    "values": ["1979-2018", "2019", "2020"],
+    "shift_type": "covariate",
+    "shift_mechanism": "canonical temporal split (≤2018 train / 2019 val / 2020 test); cross-source axis (ERA5 vs IFS-analysis) is a separate pair",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "weatherbench2-temporal",
+    "ref": "Rasp et al. 2024 JAMES (WeatherBench 2 paper)",
+    "splits": [
+      {"env_id": "1979-2018", "purpose": "train"},
+      {"env_id": "2019", "purpose": "val"},
+      {"env_id": "2020", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 66945263865, "n_env_levels": 3},
+  "schema": {
+    "regime": "array",
+    "zarr_native": true,
+    "materialized_subset": "1959-2022-6h-64x32_equiangular_conservative (smallest WB2 resolution; full 0.25deg is ~TB-scale, deferred)",
+    "dimensions": [
+      {"name": "time", "length": 93544, "grain": "6-hourly"},
+      {"name": "latitude", "length": 64, "resolution": "5.625 deg (64x32 grid)"},
+      {"name": "longitude", "length": 32, "resolution": "5.625 deg (64x32 grid)"},
+      {"name": "level", "length": 13, "type": "pressure"}
+    ],
+    "variables": ["temperature", "geopotential", "u_wind", "v_wind", "specific_humidity", "and more"]
+  },
+  "epistemic_state": {
+    "facts": ["ERA5 reanalysis 1959-2023, 6-hourly, 0.25°; canonical splits (≤2018 / 2019 / 2020); GraphCast/Pangu/FourCastNet/IFS baselines."],
+    "hypotheses": [
+      "The temporal split is a natural shift driven by climate-change baseline drift rather than a mere convenience split.",
+      "ML weather models learn ERA5-specific artifacts rather than generalizing from ERA5 training to IFS-analyses test, so cross-source transfer within climate science degrades."
+    ],
+    "intuitions": [
+      "A WeatherBench 2 leaderboard with 2024-25 results (GenCast, Aurora) likely exists.",
+      "ECMWF AIFS operational-deployment papers have probably been published.",
+      "Cross-reanalysis comparisons with MERRA-2 and JRA-3Q likely exist."
+    ],
+    "unknowns": [
+      "ERA5 blends observation and model via assimilation; whether OOD on ERA5 measures physical generalization or reanalysis-product generalization cannot be determined from the dataset alone.",
+      "The 0.25°/6-hour grain is a fixed commitment; whether atmospheric dynamics are captured at this resolution cannot be determined from ERA5 itself."
+    ],
+    "boundary": "An array-regime dataset (Zarr-native, no traces.parquet) of mixed observation/model origin; the cross-source axis (ERA5 vs IFS) is a separate pair from the temporal split."
+  },
+  "representational_commitments": [
+    "ERA5 reanalysis (specific assimilation model)",
+    "Materialized subset: 64x32 grid (5.625deg) at 6-hourly; full 0.25deg variant available on gs://weatherbench2/ but ~TB-scale, deferred for our snapshot",
+    "13 pressure levels (curatorial selection)",
+    "Multi-variable bundling (T, u, v, q, ...) at fixed grain",
+    "Zarr store is multi-file chunked; no single-file SHA256 — provenance via gs://weatherbench2/ public bucket + snapshot_date"
+  ],
+  "derived_from": ["era5"],
+  "member_of": ["weatherbench-temporal"],
+  "checksums": {},
+  "baselines": [{
+    "name": "GraphCast",
+    "ref": "Lam et al. 2023 Science",
+    "metric": "rmse_500hPa_geopotential_10d",
+    "value": 605,
+    "env": "2020"
+  }]
+}

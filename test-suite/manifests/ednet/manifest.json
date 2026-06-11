@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1.0",
+  "name": "ednet",
+  "version": "v1-2020",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://github.com/riiid/ednet",
+    "host_type": "github",
+    "license": "CC-BY-NC-4.0",
+    "stability": "stable"
+  },
+  "domain": "education.knowledge-tracing",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 2, "temporal": 3, "hierarchical": 3, "compositional": 0, "typed": 2},
+  "env_axis": {
+    "name": "subset",
+    "field": "ednet_subset",
+    "values": ["KT1", "KT2", "KT3", "KT4"],
+    "shift_type": "concept",
+    "shift_mechanism": "subset progression KT1→KT4 expands action-type richness; potentially also behavior shift",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "ednet-cross-subset",
+    "ref": "Choi et al. 2020 AIED (EdNet)",
+    "splits": [
+      {"env_id": "KT1", "purpose": "train"},
+      {"env_id": "KT4", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": 784309, "events": 131441538, "raw_bytes": 3758096384, "n_env_levels": 4},
+  "schema": {
+    "regime": "event",
+    "entity_types": [
+      {"name": "student", "key": "student_id"},
+      {"name": "session", "key": "session_id", "parent_type": "student"},
+      {"name": "interaction", "key": "interaction_id", "parent_type": "session"}
+    ],
+    "event_types": [{
+      "name": "interaction",
+      "fields": [
+        {"name": "action_type", "type": "categorical", "values": ["question", "lecture", "explanation", "play_video", "pause_video"]},
+        {"name": "content_id", "type": "string"},
+        {"name": "timestamp", "type": "datetime"},
+        {"name": "correct", "type": "boolean"}
+      ]
+    }]
+  },
+  "epistemic_state": {
+    "facts": ["131,441,538 interactions from 784,309 students across KT1/KT2/KT3/KT4 subsets (TOEIC-prep platform Santa, 2017-19)."],
+    "hypotheses": [
+      "KT1→KT4 is a schema-expansion shift (more action types tracked) rather than a behavior shift, because the progression primarily adds instrumentation rather than changing student conduct.",
+      "Knowledge-tracing models trained on KT1 transfer to KT4 only partially and require re-training for the richer action set."
+    ],
+    "intuitions": [
+      "Knowledge-tracing benchmark surveys from 2024-25 likely cover EdNet.",
+      "Foundation education-model attempts using EdNet probably exist."
+    ],
+    "unknowns": [
+      "Whether learning-process generalization here transfers to other domains cannot be decided — EdNet is TOEIC-prep-specific (Korean students, English assessment).",
+      "The Santa platform UI shapes student behavior, but UI-as-confounder is not exposed in the data."
+    ],
+    "boundary": "Single-platform / single-subject (TOEIC) — cannot evidence cross-domain learning shift."
+  },
+  "representational_commitments": [
+    "TOEIC-prep / Korean-student / English-assessment specificity",
+    "Santa platform UI shapes interactions",
+    "KT1-KT4 progression is curator's nested scheme",
+    "Action-type taxonomy fixed by platform"
+  ],
+  "derived_from": [],
+  "member_of": ["ednet-cross-subset"],
+  "checksums": {
+    "snapshots/ednet/raw.tar": "sha256:7e7a353cd6e4649e83e9e6f3b7b55ae8f7e61f47ff964daf15b657ed04a0a4b8"
+  },
+  "materialization_status": "All 5 subsets via Riiid's official bit.ly/ednet_kt* Google Drive links (corrected file IDs from earlier guessed ones): KT1 1.2GB, KT2 555MB, KT3 762MB, KT4 1.2GB, Contents 0.6MB. Total 3.5 GB compressed.",
+  "baselines": []
+}

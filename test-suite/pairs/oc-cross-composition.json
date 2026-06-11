@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1.0",
+  "name": "oc-cross-composition",
+  "members": ["oc20", "oc22"],
+  "shared_schema": true,
+  "shift_axis": "composition-and-functional",
+  "pair_type": "cross-composition",
+  "train_env": ["oc20-train"],
+  "ood_test_env": ["oc20-val-ood-ads", "oc20-val-ood-cat", "oc20-val-ood-both", "oc22-val"],
+  "epistemic_state": {
+    "facts": ["OC20 (1.28M metal-catalyst DFT relaxations, PBE) + OC22 (62k oxide-catalyst DFT relaxations, oxide-XC); 4-way internal OOD on OC20 + cross-functional OC20→OC22 transfer."],
+    "hypotheses": [
+      "OOD-both is a genuine compositional shift rather than interpolation in (ads × cat).",
+      "The DFT-functional choice (PBE vs oxide-XC) re-ranks methods under OC20→OC22 transfer.",
+      "Method ordering is preserved across these compositional axes (cross-domain result transport)."
+    ],
+    "intuitions": [
+      "Open Catalyst use in counterfactual / causal-discovery literature 2024-25.",
+      "Meta FAIR post-OC22 releases (OC25 or successor)."
+    ],
+    "unknowns": [
+      "Simulator-to-real-experiment gap is its own shift type, not addressed by this pair.",
+      "Whether right env unit is the pair (OC20-train, OC22-test) or a joint (functional × composition) env factor."
+    ]
+  },
+  "baselines": []
+}

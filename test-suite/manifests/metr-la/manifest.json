@@ -1,0 +1,73 @@
+{
+  "schema_version": "0.1.0",
+  "name": "metr-la",
+  "version": "v1-2018",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://github.com/liyaguang/DCRNN",
+    "host_type": "github",
+    "license": "MIT",
+    "stability": "stable"
+  },
+  "domain": "transportation.urban-traffic",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 2, "temporal": 3, "hierarchical": 2, "compositional": 0, "typed": 1},
+  "env_axis": {
+    "name": "city",
+    "field": "city_code",
+    "values": ["LA"],
+    "shift_type": "covariate",
+    "shift_mechanism": "single city here; cross-city realized when paired with PEMS-BAY (Bay Area) or extended to Chengdu/Shenzhen",
+    "pair_with": ["pems-bay", "chengdu-traffic", "shenzhen-traffic"]
+  },
+  "ood_protocol": {
+    "name": "metr-cross-city",
+    "ref": "Li et al. 2018 ICLR (DCRNN); Liu et al. 2023 CIKM (FEPCross)",
+    "splits": [
+      {"env_id": "la", "purpose": "train", "ref": "self:traces"}
+    ]
+  },
+  "scale": {"entities": 207, "events": null, "raw_bytes": 73400320, "n_env_levels": 1},
+  "schema": {
+    "regime": "event",
+    "entity_types": [{"name": "sensor", "key": "sensor_id"}],
+    "event_types": [{
+      "name": "5min_reading",
+      "fields": [{"name": "speed_mph", "type": "float", "unit": "mph"}]
+    }],
+    "static_attributes": [
+      {"name": "lat", "type": "float"},
+      {"name": "lon", "type": "float"},
+      {"name": "adjacency", "type": "tensor", "shape": "207x207"}
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["207 LA freeway sensors × 5-min resolution × 4 months (Mar-Jun 2012)."],
+    "hypotheses": [
+      "METR-LA → PEMS-BAY is a weak shift (both California freeway, similar urbanization), exposing the threshold below which 'cross-city' is indistinguishable from 'cross-fold'.",
+      "Adding Chengdu/Shenzhen as test envs separates 'cross-administrative-unit' from 'cross-traffic-culture' shift."
+    ],
+    "intuitions": [
+      "Cross-city baselines from Liu 2023 CIKM and ECML/PKDD 2024 FEPCross likely exist.",
+      "2024-25 traffic-foundation-model work aggregating all four cities probably exists."
+    ],
+    "unknowns": [
+      "Network topology (which sensor connects to which) is supplied externally as adjacency, not discovered from the data — there is no established label for 'imposed-vs-discovered topology' as a shift-relevant axis.",
+      "Within-day periodicity dominates variance; distinguishing temporal-shift signal from periodic baseline is itself unsolved here."
+    ],
+    "boundary": "Ty=1, C=0; restricted to spatial-temporal OOD. Single measurement modality (speed only — no flow, no occupancy)."
+  },
+  "representational_commitments": [
+    "Sensor-location-as-hierarchy (network topology imposed)",
+    "5-minute temporal grain fixed",
+    "Speed-only modality (no flow, no occupancy)",
+    "Adjacency matrix supplied externally (not derived from co-movement)"
+  ],
+  "derived_from": [],
+  "member_of": ["metr-pems-bay", "traffic-cross-city-4way"],
+  "checksums": {
+    "snapshots/metr-la/raw.tar.gz": "sha256:ce353c9c9029df9a6c6323f433c6694808b543c8263ea4134b19d814877fe474"
+  },
+  "baselines": []
+}

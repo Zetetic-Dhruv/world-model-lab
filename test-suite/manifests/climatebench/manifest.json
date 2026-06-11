@@ -1,0 +1,74 @@
+{
+  "schema_version": "0.1.0",
+  "name": "climatebench",
+  "version": "v1.0",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://zenodo.org/records/5196512",
+    "doi": "10.5281/zenodo.5196512",
+    "host_type": "zenodo",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "earth-science.climate-emulation",
+  "regime": "array",
+  "data_origin": {"primary": "simulator", "blend": "NorESM2 climate-model simulations under various forcing scenarios"},
+  "asymmetry_profile": {"process": 3, "temporal": 3, "hierarchical": 2, "compositional": 0, "typed": 2},
+  "env_axis": {
+    "name": "scenario",
+    "field": "ssp_scenario",
+    "values": ["historical", "ssp126", "ssp245", "ssp370", "ssp585", "idealized"],
+    "shift_type": "mechanism",
+    "shift_mechanism": "held-out SSP245 (mid-mitigation regime); train on others",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "climatebench-ssp245-holdout",
+    "ref": "Watson-Parris et al. 2022 JAMES",
+    "splits": [
+      {"env_id": "historical+ssp126+ssp370+ssp585+idealized", "purpose": "train"},
+      {"env_id": "ssp245", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 2386923520, "n_env_levels": 6},
+  "schema": {
+    "regime": "array",
+    "zarr_native": true,
+    "dimensions": [
+      {"name": "time", "grain": "annual"},
+      {"name": "latitude"},
+      {"name": "longitude"}
+    ],
+    "variables": ["CO2", "CH4", "BC", "SO2", "surface_temperature", "precipitation"]
+  },
+  "epistemic_state": {
+    "facts": ["NorESM2 simulations under multiple SSP + idealized forcing scenarios; held-out SSP245 standard OOD test."],
+    "hypotheses": [
+      "Held-out SSP245 reveals forced-response generalization (the policy-relevant target), rather than letting methods exploit historical-baseline information shared across scenarios.",
+      "SSP245 is a curator-chosen representative of mid-mitigation scenarios rather than a naturally occurring regime."
+    ],
+    "intuitions": [
+      "ClimateBench v2 or extensions likely exist in the 2024-25 literature.",
+      "Cross-CMIP6-model emulation benchmarks probably exist, and method ordering likely transfers NorESM2↔UKESM1 only partially.",
+      "Climate foundation models such as ClimaX and Aurora likely have documented behavior on SSP scenarios."
+    ],
+    "unknowns": [
+      "Whether climate-emulator generalization (NorESM2-to-NorESM2 cross-scenario) maps to climate-prediction generalization (any-model-to-real-Earth) cannot be determined here — these are categorically different shifts that the literature often conflates.",
+      "The SSP scenario tree is itself CMIP6's curatorial choice; held-out SSP245 represents an unseen specific scenario, not an unseen real future."
+    ],
+    "boundary": "Simulator-derived data: useful for testing method behavior on climate-like data, not for evidencing real-world climate predictions."
+  },
+  "representational_commitments": [
+    "NorESM2 climate model (specific implementation)",
+    "SSP scenario tree (CMIP6 curatorial)",
+    "Annual temporal grain",
+    "Forcing-response framing (4 forcings → 2 responses)"
+  ],
+  "derived_from": [],
+  "member_of": ["climatebench-ssp245-holdout"],
+  "checksums": {
+    "snapshots/climatebench/raw.tar": "sha256:9bc2cb37ff8166b0ccd551ae9a555e792312d8beb743278c5d8d1bbff6624ccb"
+  },
+  "materialization_status": "train_val.tar.gz (839 MB) + CMIP6.zip (1473 MB) + test.tar.gz (74 MB) — total 2.3 GB from Zenodo record 5196512.",
+  "baselines": []
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1.0",
+  "name": "camels-cross-country",
+  "members": ["camels-us", "camels-dk"],
+  "shared_schema": true,
+  "shift_axis": "country",
+  "pair_type": "cross-population",
+  "train_env": ["us"],
+  "ood_test_env": ["dk"],
+  "epistemic_state": {
+    "facts": [
+      "Both members schema-aligned per Liu 2025 ESSD: identical static-attribute schema, Daymet-equivalent forcings, daily resolution.",
+      "US has 671 catchments × 1980-2014; DK has 3,330 catchments × 1989-2019; overlap period 1989-2014 for synchronized analysis."
+    ],
+    "hypotheses": [
+      "The asymmetry-profile match between members ((3,3,2,0,2) on both) predicts the cross-country method transfer outcome.",
+      "For a three-way extension with CAMELS-IND, transitivity holds: US→DK behaves like US→IND composed with IND→DK.",
+      "Pair directionality is load-bearing: US→DK transfer is not equally hard as DK→US."
+    ],
+    "intuitions": [
+      "Cross-country hydrology transfer work 2023-25 in HESS, JoH, WRR likely covers this comparison.",
+      "The Nearing 2024 Nature global-extreme-floods method likely has documented DK-specific behavior.",
+      "A META-CAMELS aggregated analysis combining US+DK+IND+CL+AUS+BR+CH+GB members likely exists or is emerging."
+    ],
+    "unknowns": [
+      "Whether the country axis is covariate (population shift) or mechanism (different hydrological regime) cannot yet be determined; the pair design presupposes covariate, and testing this is part of what the pair enables.",
+      "Whether the shared-schema constraint imposes a lossy projection on each member's idiosyncratic dynamics (DK groundwater-baseflow; US karst regions) cannot be determined."
+    ]
+  },
+  "baselines": []
+}

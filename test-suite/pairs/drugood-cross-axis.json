@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1.0",
+  "name": "drugood-cross-axis",
+  "members": ["drugood-suite", "drugood-lbap-ic50-assay"],
+  "shared_schema": false,
+  "shift_axis": "split-axis",
+  "pair_type": "intra-dataset-env-split",
+  "train_env": ["axis-train"],
+  "ood_test_env": ["axis-test"],
+  "epistemic_state": {
+    "facts": ["96 ChEMBL configurations across 5 domain split axes (assay/scaffold/size/protein/protein-family); LBAP/SBAP variants."],
+    "hypotheses": [
+      "The 5 axes correlate in ChEMBL (scaffold approximates size) rather than being statistically independent.",
+      "DrugOOD performance predicts wet-lab generalization."
+    ],
+    "intuitions": ["DrugOOD-2 updates and cross-DrugOOD-TDC scaffold-split agreement work likely exist."],
+    "unknowns": ["Whether 'assay' as environment is assay-meta or assay-instance granularity cannot be determined because it is buried in the curation script."]
+  },
+  "baselines": []
+}

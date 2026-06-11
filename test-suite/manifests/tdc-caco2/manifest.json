@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1.0",
+  "name": "tdc-caco2",
+  "version": "v0.4",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://tdcommons.ai/single_pred_tasks/adme/#caco-2-cell-effective-permeability-wang-et-al",
+    "host_type": "pypi",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "biomedical.admet",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 0, "hierarchical": 1, "compositional": 3, "typed": 2},
+  "env_axis": {
+    "name": "scaffold",
+    "field": "bemis_murcko_scaffold",
+    "values": ["scaffold-train", "scaffold-test"],
+    "shift_type": "covariate",
+    "shift_mechanism": "Bemis-Murcko scaffold-based split; tests novel-scaffold generalization",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "tdc-caco2-scaffold",
+    "ref": "Huang et al. 2021 Nature Chemical Biology; Wang et al. (original Caco-2 data)",
+    "splits": [
+      {"env_id": "scaffold-train", "purpose": "train"},
+      {"env_id": "scaffold-val", "purpose": "val"},
+      {"env_id": "scaffold-test", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": 910, "events": 910, "raw_bytes": 82501, "n_env_levels": 1},
+  "schema": {
+    "regime": "event",
+    "entity_types": [{"name": "compound", "key": "compound_id"}],
+    "event_types": [{
+      "name": "permeability_measurement",
+      "fields": [
+        {"name": "smiles", "type": "string"},
+        {"name": "log_permeability", "type": "float", "unit": "log(cm/s)"}
+      ]
+    }]
+  },
+  "epistemic_state": {
+    "facts": ["Caco-2 cell permeability measurements (ADMET oral absorption proxy); ~900 compounds; canonical scaffold split."],
+    "hypotheses": [
+      "TDC-Caco2's scaffold-split and a DrugOOD-equivalent scaffold-split produce different shifts on overlapping data rather than agreeing.",
+      "Caco-2 is an outlier rather than a representative ADMET task (small-N, high literature variance)."
+    ],
+    "intuitions": [
+      "Caco-2 cross-pipeline benchmarks likely exist for 2024-25.",
+      "Foundation-molecular-model results on TDC ADMET probably already exist."
+    ],
+    "unknowns": [
+      "N≈900 is borderline for statistical resolution of the scaffold shift, so whether the observed method ranking is signal or noise cannot be determined at this scale; this is a limit of data size, not of the shift itself."
+    ],
+    "boundary": "Very small; useful as a canonical-but-noisy ADMET probe, not for robust shift claims."
+  },
+  "representational_commitments": [
+    "Bemis-Murcko scaffold definition",
+    "Log-permeability target (not raw cm/s)",
+    "Caco-2 cell line as proxy for oral absorption",
+    "~900-compound scale"
+  ],
+  "derived_from": ["wang-caco2-original"],
+  "member_of": ["tdc-caco2-scaffold-pair", "tdc-cross-task-suite"],
+  "curation_provenance": {
+    "curator": "TDC team",
+    "ref": "Huang et al. 2021 Nature Chemical Biology",
+    "split_rule": "Bemis-Murcko scaffold-based 70/10/20",
+    "motivation": "ADMET novel-scaffold generalization"
+  },
+  "checksums": {
+    "raw/tdc-caco2/caco2_wang.tab": "sha256:447d9f1af487c06b080145a2361dbe45af5b27afc83e1a975dd29b9ea535d6ab",
+    "derived/tdc-caco2/traces.parquet": "sha256:13bb741054e4b433fb19741d360606f5e9fc4f44a7e1171e8e67b1b85dce24ff"
+  },
+  "baselines": []
+}

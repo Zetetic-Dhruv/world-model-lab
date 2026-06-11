@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1.0",
+  "name": "good-arxiv",
+  "version": "v1-2022",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://github.com/divelab/GOOD",
+    "host_type": "github",
+    "license": "MIT",
+    "stability": "stable"
+  },
+  "domain": "academic.citation-text-hybrid",
+  "regime": "KG",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 2, "hierarchical": 2, "compositional": 0, "typed": 3},
+  "env_axis": {
+    "name": "shift-axis",
+    "field": "(domain, shift_type)",
+    "values": ["covariate-year", "concept-year", "covariate-domain", "concept-domain", "covariate-word", "concept-word"],
+    "shift_type": "concept",
+    "shift_mechanism": "arXiv papers + citation graph with covariate (year/domain/word) and concept (year/domain/word) shifts as parallel axes",
+    "pair_with": ["ogbn-arxiv"]
+  },
+  "ood_protocol": {
+    "name": "good-arxiv-6-splits",
+    "ref": "Gui et al. 2022 NeurIPS",
+    "splits": [{"env_id": "split-specific", "purpose": "ood-test"}]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": null, "n_env_levels": 6},
+  "schema": {
+    "regime": "KG",
+    "node_types": [{"name": "paper"}],
+    "edge_types": ["paper--cites--paper"]
+  },
+  "epistemic_state": {
+    "facts": ["arXiv papers + citation graph; covariate splits (year/domain/word) and concept splits (year/domain/word) on the same underlying data."],
+    "hypotheses": [
+      "Within GOOD-Arxiv, covariate-year and concept-year splits at the same year boundary expose different methods, providing a rare clean test of GOOD's theoretical dichotomy.",
+      "GOOD-Arxiv's text+graph hybrid behaves intermediate between pure-text and pure-graph rather than categorically distinct from both."
+    ],
+    "intuitions": [
+      "A three-way cross-comparison of GOOD-Arxiv vs ogbn-arxiv vs Wild-Time-arXiv is feasible — three different splits on similar underlying data that would directly expose split-as-confounder.",
+      "Foundation-model results from 2024-25 on GOOD-Arxiv specifically likely exist."
+    ],
+    "unknowns": [
+      "Whether the empirical separation of covariate-year vs concept-year tracks the theoretical intent cannot be determined — GOOD operationalizes the distinction via specific split rules, so the paper's distinction is operational, not theoretical."
+    ],
+    "boundary": "Inherits the C=0 of the arXiv data; small-scale per split."
+  },
+  "representational_commitments": [
+    "Covariate vs concept operationalized via specific split rules (not theory)",
+    "3 domain choices × 2 shift types = 6 splits curated",
+    "Text and graph treated as one domain (typed Ty=3)"
+  ],
+  "derived_from": ["arxiv-cs", "ogbn-arxiv-snapshot"],
+  "member_of": ["good-arxiv-cross-shift", "good-cross-shift-suite"],
+  "curation_provenance": {
+    "curator": "Gui et al. (DIVE Lab)",
+    "ref": "Gui et al. 2022 NeurIPS",
+    "split_rule": "(year | domain | word) × (covariate | concept)",
+    "motivation": "Within-dataset test of covariate-vs-concept distinction"
+  },
+  "checksums": {},
+  "baselines": []
+}

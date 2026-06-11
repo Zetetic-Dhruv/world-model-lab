@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "name": "amazon-cross-category",
+  "members": ["amazon-reviews-2023"],
+  "shared_schema": true,
+  "shift_axis": "category",
+  "pair_type": "cross-population",
+  "train_env": ["source-category"],
+  "ood_test_env": ["target-category"],
+  "epistemic_state": {
+    "facts": ["571.54M reviews from 54.51M users across 48.19M items in 33 categories (May 1996 - Sept 2023)."],
+    "hypotheses": [
+      "Category-cluster, rather than raw category, is the appropriate environment unit because several categories are near-duplicates.",
+      "Temporal shift within a category dominates cross-category shift."
+    ],
+    "intuitions": ["CDR leaderboards 2024-25 and McAuley group post-2023 releases likely cover this comparison."],
+    "unknowns": [
+      "Whether user-as-bridge across categories is genuine cross-domain signal or merely correlation cannot be determined from the data.",
+      "Whether the 33-category commercial taxonomy matches a semantic taxonomy is undecidable from the data."
+    ]
+  },
+  "baselines": []
+}

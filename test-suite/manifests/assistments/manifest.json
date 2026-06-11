@@ -1,0 +1,81 @@
+{
+  "schema_version": "0.1.0",
+  "name": "assistments",
+  "version": "2009-2012-2015-2017",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://sites.google.com/site/assistmentsdata/",
+    "host_type": "assistments-portal",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "education.k12-math-tutoring",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 2, "temporal": 3, "hierarchical": 3, "compositional": 0, "typed": 2},
+  "env_axis": {
+    "name": "cohort-year",
+    "field": "cohort_year",
+    "values": ["2009", "2012", "2015", "2017"],
+    "shift_type": "mechanism",
+    "shift_mechanism": "cohort-year shift is compound: curriculum + platform + population each differ across years",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "assistments-cross-cohort",
+    "ref": "Heffernan & Heffernan 2014 IJAIED",
+    "splits": [
+      {"env_id": "2009", "purpose": "train"},
+      {"env_id": "2017", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 1288490189, "n_env_levels": 4},
+  "schema": {
+    "regime": "event",
+    "entity_types": [
+      {"name": "cohort", "key": "cohort_year"},
+      {"name": "student", "key": "student_id", "parent_type": "cohort"},
+      {"name": "session", "key": "session_id", "parent_type": "student"},
+      {"name": "interaction", "key": "interaction_id", "parent_type": "session"}
+    ],
+    "event_types": [{
+      "name": "problem_attempt",
+      "fields": [
+        {"name": "skill_id", "type": "string"},
+        {"name": "problem_id", "type": "string"},
+        {"name": "correct", "type": "boolean"},
+        {"name": "hint_count", "type": "int"},
+        {"name": "attempt_count", "type": "int"},
+        {"name": "ms_first_response", "type": "int"}
+      ]
+    }]
+  },
+  "epistemic_state": {
+    "facts": ["2009/2012/2015/2017 cohorts; US middle/high school math; cross-cohort year-shift canonical OOD."],
+    "hypotheses": [
+      "Cohort-year shift is primarily curriculum shift (math standards changed) rather than platform or population shift, because standards revisions over 2009-2017 alter the skill taxonomy directly.",
+      "Method ranking on 2009→2012 predicts ranking on 2012→2015, because the cohort-shift mechanism is stable across adjacent time-bins."
+    ],
+    "intuitions": [
+      "Foundation-model work using ASSISTments data likely exists.",
+      "CSEDM workshop benchmarks for 2024-25 probably include these cohorts."
+    ],
+    "unknowns": [
+      "Each cohort is a different enrolled school set, not a longitudinal panel, so whether year-as-environment conflates time with school cannot be determined from anonymized data.",
+      "Documented data-quality fixes (gameable answers, bugs) differ across cohorts, so cohort-as-environment is confounded with data-quality-fix history."
+    ],
+    "boundary": "The dataset covers K-12 US math only; it is smaller than EdNet but has a richer multi-year design."
+  },
+  "representational_commitments": [
+    "K-12 US math curriculum",
+    "4 cohort years (curator's snapshots)",
+    "Skill-and-problem taxonomy from ASSISTments curriculum",
+    "Data-quality fixes across cohorts (acknowledged confounder)"
+  ],
+  "derived_from": [],
+  "member_of": ["assistments-cross-cohort"],
+  "checksums": {
+    "snapshots/assistments/raw.tar.gz": "sha256:07cded7edb1457540414fa7cdc2eb390ff703bdaec57cd29e43c7302d34c036a"
+  },
+  "baselines": []
+}

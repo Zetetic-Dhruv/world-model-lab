@@ -1,0 +1,762 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_version": "0.1.0",
+  "generated": "2026-05-26",
+  "status_summary": {
+    "urs_derived": 43,
+    "manifest_committed": 43,
+    "pairs_committed": 24,
+    "raw_materialized": 40,
+    "traces_built": 7
+  },
+  "tier_counts": {
+    "A": 13,
+    "B": 30
+  },
+  "regime_counts": {
+    "event": 26,
+    "KG": 8,
+    "blob": 7,
+    "array": 2
+  },
+  "origin_counts": {
+    "natural": 33,
+    "simulator": 7,
+    "synthetic": 0,
+    "mixed": 3
+  },
+  "datasets": [
+    {
+      "name": "amazon-reviews-2023",
+      "manifest": "manifests/amazon-reviews-2023/manifest.json",
+      "card": "cards/amazon-reviews-2023.md",
+      "regime": "event",
+      "domain": "ecommerce.cross-category-recommendation",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "assistments",
+      "manifest": "manifests/assistments/manifest.json",
+      "card": "cards/assistments.md",
+      "regime": "event",
+      "domain": "education.k12-math-tutoring",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "atlas-higgsml",
+      "manifest": "manifests/atlas-higgsml/manifest.json",
+      "card": "cards/atlas-higgsml.md",
+      "regime": "event",
+      "domain": "physics.hep-classification",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "bigearthnet",
+      "manifest": "manifests/bigearthnet/manifest.json",
+      "card": "cards/bigearthnet.md",
+      "regime": "blob",
+      "domain": "remote-sensing.land-cover",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "bosch-cnc",
+      "manifest": "manifests/bosch-cnc/manifest.json",
+      "card": "cards/bosch-cnc.md",
+      "regime": "event",
+      "domain": "industrial.cnc-machining",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "camels-dk",
+      "manifest": "manifests/camels-dk/manifest.json",
+      "card": "cards/camels-dk.md",
+      "regime": "event",
+      "domain": "earth-science.hydrology",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "camels-ind",
+      "manifest": "manifests/camels-ind/manifest.json",
+      "card": "cards/camels-ind.md",
+      "regime": "event",
+      "domain": "earth-science.hydrology",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "camels-us",
+      "manifest": "manifests/camels-us/manifest.json",
+      "card": "cards/camels-us.md",
+      "regime": "event",
+      "domain": "earth-science.hydrology",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "climatebench",
+      "manifest": "manifests/climatebench/manifest.json",
+      "card": "cards/climatebench.md",
+      "regime": "array",
+      "domain": "earth-science.climate-emulation",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "drugood-lbap-ic50-assay",
+      "manifest": "manifests/drugood-lbap-ic50-assay/manifest.json",
+      "card": "cards/drugood-lbap-ic50-assay.md",
+      "regime": "event",
+      "domain": "biomedical.drug-discovery",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "drugood-suite",
+      "manifest": "manifests/drugood-suite/manifest.json",
+      "card": "cards/drugood-suite.md",
+      "regime": "event",
+      "domain": "biomedical.drug-discovery-ood-suite",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "ednet",
+      "manifest": "manifests/ednet/manifest.json",
+      "card": "cards/ednet.md",
+      "regime": "event",
+      "domain": "education.knowledge-tracing",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "fred-md",
+      "manifest": "manifests/fred-md/manifest.json",
+      "card": "cards/fred-md.md",
+      "regime": "event",
+      "domain": "economics.macro-time-series",
+      "data_origin": "natural",
+      "stability": "live-updating",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "galaxy-zoo-kids-desi",
+      "manifest": "manifests/galaxy-zoo-kids-desi/manifest.json",
+      "card": "cards/galaxy-zoo-kids-desi.md",
+      "regime": "blob",
+      "domain": "astronomy.morphology-cross-instrument",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "good-arxiv",
+      "manifest": "manifests/good-arxiv/manifest.json",
+      "card": "cards/good-arxiv.md",
+      "regime": "KG",
+      "domain": "academic.citation-text-hybrid",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "good-suite",
+      "manifest": "manifests/good-suite/manifest.json",
+      "card": "cards/good-suite.md",
+      "regime": "KG",
+      "domain": "graphs.ood-benchmark-suite",
+      "data_origin": "mixed",
+      "stability": "stable",
+      "tier": "B",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "hetionet",
+      "manifest": "manifests/hetionet/manifest.json",
+      "card": "cards/hetionet.md",
+      "regime": "KG",
+      "domain": "biomedical.kg",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "lhc-olympics-2020",
+      "manifest": "manifests/lhc-olympics-2020/manifest.json",
+      "card": "cards/lhc-olympics-2020.md",
+      "regime": "event",
+      "domain": "physics.hep-anomaly-detection",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "m6",
+      "manifest": "manifests/m6/manifest.json",
+      "card": "cards/m6.md",
+      "regime": "event",
+      "domain": "finance.forecasting-competition",
+      "data_origin": "natural",
+      "stability": "closed-after-period",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "metr-la",
+      "manifest": "manifests/metr-la/manifest.json",
+      "card": "cards/metr-la.md",
+      "regime": "event",
+      "domain": "transportation.urban-traffic",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "movielens",
+      "manifest": "manifests/movielens/manifest.json",
+      "card": "cards/movielens.md",
+      "regime": "event",
+      "domain": "ecommerce.recommendation",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "nasa-cmapss",
+      "manifest": "manifests/nasa-cmapss/manifest.json",
+      "card": "cards/nasa-cmapss.md",
+      "regime": "event",
+      "domain": "industrial.prognostics-simulator",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "neon",
+      "manifest": "manifests/neon/manifest.json",
+      "card": "cards/neon.md",
+      "regime": "event",
+      "domain": "ecology.observatory-network",
+      "data_origin": "natural",
+      "stability": "live-updating",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "nih-chestxray14",
+      "manifest": "manifests/nih-chestxray14/manifest.json",
+      "card": "cards/nih-chestxray14.md",
+      "regime": "blob",
+      "domain": "biomedical.clinical-imaging",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "noaa-ghcn-daily",
+      "manifest": "manifests/noaa-ghcn-daily/manifest.json",
+      "card": "cards/noaa-ghcn-daily.md",
+      "regime": "event",
+      "domain": "earth-science.weather-station-observations",
+      "data_origin": "natural",
+      "stability": "live-updating",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "oc20",
+      "manifest": "manifests/oc20/manifest.json",
+      "card": "cards/oc20.md",
+      "regime": "event",
+      "domain": "chemistry.catalysis",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "oc22",
+      "manifest": "manifests/oc22/manifest.json",
+      "card": "cards/oc22.md",
+      "regime": "event",
+      "domain": "chemistry.catalysis-oxides",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "ogb-mag",
+      "manifest": "manifests/ogb-mag/manifest.json",
+      "card": "cards/ogb-mag.md",
+      "regime": "KG",
+      "domain": "academic.heterogeneous-citation",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "ogb-suite",
+      "manifest": "manifests/ogb-suite/manifest.json",
+      "card": "cards/ogb-suite.md",
+      "regime": "KG",
+      "domain": "graphs.benchmark-suite",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "ogbn-arxiv",
+      "manifest": "manifests/ogbn-arxiv/manifest.json",
+      "card": "cards/ogbn-arxiv.md",
+      "regime": "KG",
+      "domain": "academic.citation",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "osc-score-birmingham",
+      "manifest": "manifests/osc-score-birmingham/manifest.json",
+      "card": "cards/osc-score-birmingham.md",
+      "regime": "event",
+      "domain": "meta-science.replications",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "pems-bay",
+      "manifest": "manifests/pems-bay/manifest.json",
+      "card": "cards/pems-bay.md",
+      "regime": "event",
+      "domain": "transportation.urban-traffic",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "plasticc",
+      "manifest": "manifests/plasticc/manifest.json",
+      "card": "cards/plasticc.md",
+      "regime": "event",
+      "domain": "astronomy.photometric-classification",
+      "data_origin": "mixed",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "primekg",
+      "manifest": "manifests/primekg/manifest.json",
+      "card": "cards/primekg.md",
+      "regime": "KG",
+      "domain": "biomedical.kg",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "so2sat-lcz42",
+      "manifest": "manifests/so2sat-lcz42/manifest.json",
+      "card": "cards/so2sat-lcz42.md",
+      "regime": "blob",
+      "domain": "remote-sensing.urban-classification",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "tdc-caco2",
+      "manifest": "manifests/tdc-caco2/manifest.json",
+      "card": "cards/tdc-caco2.md",
+      "regime": "event",
+      "domain": "biomedical.admet",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "tdc-suite",
+      "manifest": "manifests/tdc-suite/manifest.json",
+      "card": "cards/tdc-suite.md",
+      "regime": "event",
+      "domain": "biomedical.drug-discovery-suite",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "tennessee-eastman",
+      "manifest": "manifests/tennessee-eastman/manifest.json",
+      "card": "cards/tennessee-eastman.md",
+      "regime": "event",
+      "domain": "industrial.chemical-process-simulator",
+      "data_origin": "simulator",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "tgb",
+      "manifest": "manifests/tgb/manifest.json",
+      "card": "cards/tgb.md",
+      "regime": "KG",
+      "domain": "graphs.temporal-suite",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "weatherbench2",
+      "manifest": "manifests/weatherbench2/manifest.json",
+      "card": "cards/weatherbench2.md",
+      "regime": "array",
+      "domain": "earth-science.atmospheric-reanalysis",
+      "data_origin": "mixed",
+      "stability": "churning",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "wild-time",
+      "manifest": "manifests/wild-time/manifest.json",
+      "card": "cards/wild-time.md",
+      "regime": "blob",
+      "domain": "temporal-ood.mixed-suite",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "B",
+      "status": "materialized"
+    },
+    {
+      "name": "wilds-camelyon17",
+      "manifest": "manifests/wilds-camelyon17/manifest.json",
+      "card": "cards/wilds-camelyon17.md",
+      "regime": "blob",
+      "domain": "biomedical.histopathology",
+      "data_origin": "natural",
+      "stability": "stable",
+      "tier": "A",
+      "status": "materialized"
+    },
+    {
+      "name": "wilds-suite",
+      "manifest": "manifests/wilds-suite/manifest.json",
+      "card": "cards/wilds-suite.md",
+      "regime": "blob",
+      "domain": "ood-benchmark-suite",
+      "data_origin": "natural",
+      "stability": "churning",
+      "tier": "B",
+      "status": "materialized"
+    }
+  ],
+  "pairs": [
+    {
+      "name": "amazon-cross-category",
+      "manifest": "pairs/amazon-cross-category.json",
+      "members": [
+        "amazon-reviews-2023"
+      ],
+      "pair_type": "cross-population",
+      "shift_axis": "category",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "bosch-cross-machine",
+      "manifest": "pairs/bosch-cross-machine.json",
+      "members": [
+        "bosch-cnc"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "machine",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "camels-cross-country",
+      "manifest": "pairs/camels-cross-country.json",
+      "members": [
+        "camels-us",
+        "camels-dk"
+      ],
+      "pair_type": "cross-population",
+      "shift_axis": "country",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "camels-three-way",
+      "manifest": "pairs/camels-three-way.json",
+      "members": [
+        "camels-us",
+        "camels-dk",
+        "camels-ind"
+      ],
+      "pair_type": "cross-population",
+      "shift_axis": "country",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "camelyon17-hospital-shift",
+      "manifest": "pairs/camelyon17-hospital-shift.json",
+      "members": [
+        "wilds-camelyon17"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "hospital",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "cmapss-cross-subset",
+      "manifest": "pairs/cmapss-cross-subset.json",
+      "members": [
+        "nasa-cmapss"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "subset",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "cxr-cross-country",
+      "manifest": "pairs/cxr-cross-country.json",
+      "members": [
+        "nih-chestxray14"
+      ],
+      "pair_type": "cross-population",
+      "shift_axis": "country-and-hospital",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "drugood-cross-axis",
+      "manifest": "pairs/drugood-cross-axis.json",
+      "members": [
+        "drugood-suite",
+        "drugood-lbap-ic50-assay"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "split-axis",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "ednet-cross-subset",
+      "manifest": "pairs/ednet-cross-subset.json",
+      "members": [
+        "ednet"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "subset",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "fred-regime-shift",
+      "manifest": "pairs/fred-regime-shift.json",
+      "members": [
+        "fred-md"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "regime",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "ghcn-cross-decade",
+      "manifest": "pairs/ghcn-cross-decade.json",
+      "members": [
+        "noaa-ghcn-daily"
+      ],
+      "pair_type": "cross-time",
+      "shift_axis": "decade-and-instrument-era",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "good-cross-shift-suite",
+      "manifest": "pairs/good-cross-shift-suite.json",
+      "members": [
+        "good-suite",
+        "good-arxiv"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "covariate-vs-concept",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "kids-desi-cross-instrument",
+      "manifest": "pairs/kids-desi-cross-instrument.json",
+      "members": [
+        "galaxy-zoo-kids-desi"
+      ],
+      "pair_type": "cross-instrument",
+      "shift_axis": "instrument",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "lhc-olympics-blind-bb",
+      "manifest": "pairs/lhc-olympics-blind-bb.json",
+      "members": [
+        "lhc-olympics-2020"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "blind-injection",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "m6-forward-live",
+      "manifest": "pairs/m6-forward-live.json",
+      "members": [
+        "m6"
+      ],
+      "pair_type": "cross-time",
+      "shift_axis": "live-round",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "metr-pems-bay",
+      "manifest": "pairs/metr-pems-bay.json",
+      "members": [
+        "metr-la",
+        "pems-bay"
+      ],
+      "pair_type": "cross-population",
+      "shift_axis": "city",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "neon-cross-domain",
+      "manifest": "pairs/neon-cross-domain.json",
+      "members": [
+        "neon"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "ecoclimatic-domain",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "oc-cross-composition",
+      "manifest": "pairs/oc-cross-composition.json",
+      "members": [
+        "oc20",
+        "oc22"
+      ],
+      "pair_type": "cross-composition",
+      "shift_axis": "composition-and-functional",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "plasticc-train-test",
+      "manifest": "pairs/plasticc-train-test.json",
+      "members": [
+        "plasticc"
+      ],
+      "pair_type": "cross-population",
+      "shift_axis": "representativeness",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "primekg-vs-hetionet-cross-kg",
+      "manifest": "pairs/primekg-vs-hetionet-cross-kg.json",
+      "members": [
+        "primekg",
+        "hetionet"
+      ],
+      "pair_type": "cross-source",
+      "shift_axis": "kg-integration",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "replication-pair",
+      "manifest": "pairs/replication-pair.json",
+      "members": [
+        "osc-score-birmingham"
+      ],
+      "pair_type": "replication",
+      "shift_axis": "original-vs-replication",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "tdc-cross-task-suite",
+      "manifest": "pairs/tdc-cross-task-suite.json",
+      "members": [
+        "tdc-suite",
+        "tdc-caco2"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "split-type",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "weatherbench-temporal",
+      "manifest": "pairs/weatherbench-temporal.json",
+      "members": [
+        "weatherbench2"
+      ],
+      "pair_type": "cross-time",
+      "shift_axis": "year",
+      "status": "manifest-committed"
+    },
+    {
+      "name": "wilds-shift-suite",
+      "manifest": "pairs/wilds-shift-suite.json",
+      "members": [
+        "wilds-suite",
+        "wilds-camelyon17"
+      ],
+      "pair_type": "intra-dataset-env-split",
+      "shift_axis": "shift-type-per-sub",
+      "status": "manifest-committed"
+    }
+  ],
+  "phases": {
+    "1_urs_derivation": "complete",
+    "2_schema_writing": "complete (5 schemas committed, all validate)",
+    "3_mass_generate_manifests": "complete (43 manifests + 24 pairs + 43 cards committed; all validate)",
+    "4_fetch_and_materialize": "pending",
+    "5_lean4_mirror": "deferred"
+  }
+}

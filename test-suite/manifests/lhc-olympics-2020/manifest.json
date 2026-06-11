@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1.0",
+  "name": "lhc-olympics-2020",
+  "version": "v1-2020",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://zenodo.org/records/4536624",
+    "doi": "10.5281/zenodo.4536624",
+    "host_type": "zenodo",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "physics.hep-anomaly-detection",
+  "regime": "event",
+  "data_origin": {"primary": "simulator", "blend": "MC simulation (PYTHIA + DELPHES)"},
+  "asymmetry_profile": {"process": 2, "temporal": 0, "hierarchical": 2, "compositional": 2, "typed": 2},
+  "env_axis": {
+    "name": "blind-injection",
+    "field": "dataset_id",
+    "values": ["RnD", "BB1", "BB2", "BB3"],
+    "shift_type": "concept",
+    "shift_mechanism": "RnD set has known signal+background; 3 black-box datasets have unknown injected anomalies — simulates MC-to-data gap",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "lhc-olympics-blind-bb",
+    "ref": "Kasieczka et al. 2021 RPP (LHC Olympics report)",
+    "splits": [
+      {"env_id": "RnD-train", "purpose": "train"},
+      {"env_id": "BB1", "purpose": "ood-test"},
+      {"env_id": "BB2", "purpose": "ood-test"},
+      {"env_id": "BB3", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": 1000000, "raw_bytes": 2197115928, "n_env_levels": 4},
+  "schema": {
+    "regime": "event",
+    "entity_types": [{"name": "event", "key": "event_id"}],
+    "event_types": [{
+      "name": "jet_constituents",
+      "fields": [
+        {"name": "particle_pt", "type": "float[700]"},
+        {"name": "particle_eta", "type": "float[700]"},
+        {"name": "particle_phi", "type": "float[700]"}
+      ]
+    }]
+  },
+  "epistemic_state": {
+    "facts": ["1M background + 1M signal R&D events + 3 black-box datasets with unknown injected anomalies."],
+    "hypotheses": [
+      "Black-box anomaly scores do not correlate with R&D training: the blind injection succeeds in being method-invariant.",
+      "Anomaly detection does not generalize across the 3 black boxes (BB1→BB2, BB3); anomaly discovery is dataset-specific."
+    ],
+    "intuitions": [
+      "LHC Olympics retrospective papers from 2020-2024 likely exist.",
+      "ATLAS/CMS anomaly detection on actual Run 2/3 physical data probably exists."
+    ],
+    "unknowns": [
+      "MC-to-data shift in HEP is compound — parton showers + hadronization + detector response + pileup — but the black boxes don't decompose, and there is no established label for a 'compound shift mechanism'.",
+      "Detector-side and physics-side anomalies share data signature with categorically different generation processes."
+    ],
+    "boundary": "Simulated data; C=2 is event-level only, not within-particle."
+  },
+  "representational_commitments": [
+    "PYTHIA + DELPHES simulation chain",
+    "Up to 700 particles per event (padding/truncation)",
+    "Jet-substructure representation choice",
+    "BB1/BB2/BB3 specific anomaly types are the organizers' choice"
+  ],
+  "derived_from": [],
+  "member_of": ["lhc-olympics-blind-bb"],
+  "checksums": {
+    "snapshots/lhc-olympics-2020/raw.tar.gz": "sha256:a1185aac5af37ca5faa6b8a98da902b69d22e18afb3daefea4f007e21a51ac01"
+  },
+  "materialization_status": "BB1.h5 materialized (2.1 GB). BB2/BB3 (~6 GB total) + R&D set deferred — same Zenodo /content URL pattern.",
+  "baselines": []
+}

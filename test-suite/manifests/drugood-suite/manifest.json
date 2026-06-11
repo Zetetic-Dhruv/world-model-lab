@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "name": "drugood-suite",
+  "version": "v1-2022",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://github.com/tencent-ailab/DrugOOD",
+    "host_type": "github",
+    "license": "MIT",
+    "stability": "stable"
+  },
+  "domain": "biomedical.drug-discovery-ood-suite",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 0, "hierarchical": 1, "compositional": 3, "typed": 2},
+  "env_axis": {
+    "name": "split-axis",
+    "field": "split_axis",
+    "values": ["assay", "scaffold", "size", "protein", "protein-family"],
+    "shift_type": "covariate",
+    "shift_mechanism": "5 domain split axes × LBAP/SBAP variants = 96 configurations from ChEMBL ~2.1M activity records",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "drugood-96-configs",
+    "ref": "Ji et al. 2022 NeurIPS Datasets",
+    "splits": [{"env_id": "config-specific", "purpose": "ood-test"}]
+  },
+  "scale": {"entities": null, "events": 2100000, "raw_bytes": 4218787840, "n_env_levels": 96},
+  "schema": {
+    "regime": "event",
+    "suite_note": "suite — 96 ChEMBL configurations. drugood-lbap-ic50-assay broken out as a core member within the suite.",
+    "sub_datasets": ["96 configurations parameterized by (split_axis × LBAP/SBAP × specific measurement)"]
+  },
+  "epistemic_state": {
+    "facts": ["96 ChEMBL configurations from ~2.1M activity records; 5 domain split axes (assay/scaffold/size/protein/protein-family); LBAP/SBAP variants; tencent-ailab/DrugOOD."],
+    "hypotheses": [
+      "The 5 axes are not statistically independent in ChEMBL but correlate, with scaffold-shift approximating size-shift because molecule size correlates with scaffold complexity.",
+      "DrugOOD performance predicts only computational held-out-ChEMBL generalization, not wet-lab generalization (the actual drug-discovery objective)."
+    ],
+    "intuitions": [
+      "DrugOOD-2 updates from 2024-25 likely exist.",
+      "A cross-DrugOOD-TDC scaffold-split agreement check is feasible since both use ChEMBL, and the splits probably disagree in part.",
+      "Critiques of the pinned ChEMBL snapshot version likely exist in the literature."
+    ],
+    "unknowns": [
+      "Whether assay-as-env captures the right granularity (ID vs family vs protocol) cannot be decided — assays drift in protocol within ChEMBL itself.",
+      "Whether the 96 configurations are representative or curated for clear shift cannot be determined; they cover only a small region of (5-axis × ChEMBL) space."
+    ],
+    "boundary": "ChEMBL-bounded (no patents, no other DBs); the 5 axes are pre-specified, not discovered."
+  },
+  "representational_commitments": [
+    "5 split-axes pre-specified",
+    "ChEMBL-only data source",
+    "96 specific configurations curated",
+    "LBAP/SBAP framing (ligand-based vs structure-based)"
+  ],
+  "derived_from": ["chembl"],
+  "member_of": ["drugood-cross-axis"],
+  "curation_provenance": {
+    "curator": "Ji et al. (Tencent AI Lab)",
+    "ref": "Ji et al. 2022 NeurIPS Datasets",
+    "split_rule": "5 domain split axes × measurement variants",
+    "motivation": "Realistic OOD for drug-discovery ML"
+  },
+  "checksums": {
+    "snapshots/drugood-suite/raw.tar": "sha256:0ac48703f0c91ec9d7617db6e85add8f20232adf87c6b27baa3f8769e9f809d3"
+  },
+  "materialization_status": "ChEMBL 29 SQLite (4 GB) materialized — the upstream source DrugOOD applies its preprocessing to. DrugOOD config files in repo (/tmp/drugood). For specific OOD configurations (assay/scaffold/size split), apply DrugOOD's curators per their preprocessing scripts.",
+  "baselines": []
+}

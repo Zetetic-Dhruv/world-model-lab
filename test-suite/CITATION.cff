@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: "Test Suite — the bench for real autodidaxis"
+message: "If you use this test suite, please cite it as below."
+type: dataset
+authors:
+  - family-names: Gupta
+    given-names: Dhruv
+abstract: >-
+  A test suite of ~43 publicly accessible datasets with naturally occurring
+  out-of-distribution (OOD) shift, built as the evaluation bench for auto-didactic
+  neuro-symbolic world models (part of world-model-lab). It measures whether a
+  self-built theory of a domain survives natural distribution shift and matches a
+  per-dataset rubric of established facts, testable hypotheses, expected
+  intuitions, and genuine unknowns.
+license: CC-BY-4.0
+version: "0.1.0"
+date-released: "2026-05-29"
+url: "https://github.com/Zetetic-Dhruv/world-model-lab/tree/main/test-suite"
+keywords:
+  - autodidaxis
+  - neuro-symbolic
+  - world-models
+  - out-of-distribution
+  - distribution-shift
+  - benchmark

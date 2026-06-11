@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1.0",
+  "name": "cmapss-cross-subset",
+  "members": ["nasa-cmapss"],
+  "shared_schema": true,
+  "shift_axis": "subset",
+  "pair_type": "intra-dataset-env-split",
+  "train_env": ["FD001"],
+  "ood_test_env": ["FD002", "FD003", "FD004"],
+  "epistemic_state": {
+    "facts": ["FD001 (1 op × 1 fault) → FD002-4 (richer op-condition × fault-mode factorials); turbofan-degradation simulator."],
+    "hypotheses": [
+      "The (op × fault) factorial is actually orthogonal in the simulator output.",
+      "Method ordering on CMAPSS predicts ordering on N-CMAPSS (the more realistic NASA successor)."
+    ],
+    "intuitions": [
+      "Cross-subset transfer surveys 2023-25 likely cover this comparison.",
+      "CMAPSS vs N-CMAPSS comparison papers likely exist."
+    ],
+    "unknowns": [
+      "The simulator's Wiener-process degradation model is fixed, so whether real engines actually follow this form is undecidable from CMAPSS."
+    ]
+  },
+  "baselines": []
+}

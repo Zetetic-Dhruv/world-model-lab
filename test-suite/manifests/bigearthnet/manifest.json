@@ -1,0 +1,74 @@
+{
+  "schema_version": "0.1.0",
+  "name": "bigearthnet",
+  "version": "v1",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://bigearth.net/",
+    "host_type": "bigearth-net",
+    "license": "CC-BY-4.0",
+    "stability": "stable"
+  },
+  "domain": "remote-sensing.land-cover",
+  "regime": "blob",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 1, "temporal": 0, "hierarchical": 2, "compositional": 0, "typed": 3},
+  "env_axis": {
+    "name": "country",
+    "field": "country_code",
+    "values": ["AT", "BE", "FI", "IE", "LT", "PT", "RS", "CH", "PL", "DE"],
+    "shift_type": "covariate",
+    "shift_mechanism": "10 European countries; cross-country geographic shift",
+    "pair_with": ["so2sat-lcz42"]
+  },
+  "ood_protocol": {
+    "name": "bigearth-cross-country",
+    "ref": "Sumbul et al. 2019 IGARSS (BigEarthNet); 2024 Geo-Bench framing",
+    "splits": [
+      {"env_id": "8-countries-train", "purpose": "train"},
+      {"env_id": "2-countries-test", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": 590326, "events": null, "raw_bytes": 287309824, "n_env_levels": 10},
+  "schema": {
+    "regime": "blob",
+    "entity_types": [
+      {"name": "country", "key": "country_code"},
+      {"name": "patch", "key": "patch_id", "parent_type": "country"}
+    ],
+    "metadata_fields": [
+      {"name": "sentinel2_msi", "type": "array[12,120,120]"},
+      {"name": "corine_labels", "type": "categorical[multi]", "n_classes": 43}
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["590,326 Sentinel-2 patches over 10 European countries (Jun 2017 - May 2018); 43 CORINE Land Cover classes, multi-label."],
+    "hypotheses": [
+      "Methods that succeed on BigEarthNet cross-country shift also transfer to So2Sat on overlapping geography, because both share the same European-geography shift structure.",
+      "Multi-label CORINE is not a clean compositional handle, because it conflates spatial composition with semantic composition."
+    ],
+    "intuitions": [
+      "BigEarthNet v2 (BigEarthNet-MM with Sentinel-1 SAR added) likely exists as an extension.",
+      "Foundation earth-observation results for 2024-25 probably use this dataset.",
+      "Cross-EO transfer studies (BigEarthNet vs So2Sat vs EuroSAT vs SEN12MS) likely exist."
+    ],
+    "unknowns": [
+      "CORINE's 43-class taxonomy is European-specific; whether it generalizes to non-EU geographies cannot be determined from BigEarthNet alone.",
+      "Whether Sentinel-2 single-revisit (10-day) versus averaged-over-period preparation affects implicit temporal information cannot be assessed from the prepared data."
+    ],
+    "boundary": "The dataset is Europe-only with T=0 and C=0 (multi-label is label-level, not entity-level composition), so it cannot show temporal or compositional shift."
+  },
+  "representational_commitments": [
+    "10-country EU selection",
+    "43-class CORINE taxonomy (Europe-specific)",
+    "Jun 2017 - May 2018 period",
+    "120x120 patch size"
+  ],
+  "derived_from": ["sentinel-2"],
+  "member_of": ["bigearth-cross-country"],
+  "checksums": {
+    "snapshots/bigearthnet/raw.tar": "sha256:22acf3a18f1687e0f51849d978842bff149d3e1e2a0bbafa696acba55b1d1995"
+  },
+  "materialization_status": "metadata + Reference Maps materialized (274 MB). BigEarthNet-S1.tar.zst (54 GB) + BigEarthNet-S2.tar.zst (63 GB) deferred — Zenodo record 10891137, URL pattern confirmed working.",
+  "baselines": []
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1.0",
+  "name": "fred-regime-shift",
+  "members": ["fred-md"],
+  "shared_schema": true,
+  "shift_axis": "regime",
+  "pair_type": "intra-dataset-env-split",
+  "train_env": ["pre-2008"],
+  "ood_test_env": ["post-2020"],
+  "epistemic_state": {
+    "facts": ["134+ US monthly macro series 1959-present; published regime shifts (GFC, COVID, ZLB)."],
+    "hypotheses": [
+      "{pre-2008, 2008-2020, post-2020} are three distinct environments rather than two with COVID as a transient.",
+      "Vintage-as-environment (released-by date) is categorically different from measurement-date-as-environment."
+    ],
+    "intuitions": [
+      "Goulet Coulombe 2022 / Medeiros 2021 extended to post-2024 data.",
+      "Nowcasting literature using ALFRED vintage archive."
+    ],
+    "unknowns": [
+      "'Regime' as a primitive — discrete latent state vs continuous latent variable — is something the data does not commit to but every method does; there is no established formal name for it."
+    ]
+  },
+  "baselines": []
+}

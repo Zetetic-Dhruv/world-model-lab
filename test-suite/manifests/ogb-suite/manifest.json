@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1.0",
+  "name": "ogb-suite",
+  "version": "v1-2020",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://ogb.stanford.edu/",
+    "host_type": "pypi",
+    "license": "MIT",
+    "stability": "churning"
+  },
+  "domain": "graphs.benchmark-suite",
+  "regime": "KG",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 1, "hierarchical": 2, "compositional": 1, "typed": 2},
+  "env_axis": {
+    "name": "application-split",
+    "field": "split_type",
+    "values": ["year", "scaffold", "species", "throughput", "snapshot-timestamp"],
+    "shift_type": "covariate",
+    "shift_mechanism": "13+ sub-datasets with sub-dataset-specific split rules — curator-chosen, not naturally emergent",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "ogb-suite-application-splits",
+    "ref": "Hu et al. 2020 NeurIPS",
+    "splits": [{"env_id": "sub-dataset-specific", "purpose": "ood-test"}]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": null, "n_env_levels": 13},
+  "schema": {
+    "regime": "KG",
+    "suite_note": "Suite — 13+ sub-datasets across node/link/graph property prediction. ogbn-arxiv broken out separately as a core member within the suite.",
+    "sub_datasets": [
+      "ogbn-products", "ogbn-proteins", "ogbn-papers100M",
+      "ogbl-ppa", "ogbl-collab", "ogbl-citation2", "ogbl-wikikg2", "ogbl-biokg",
+      "ogbg-molhiv", "ogbg-molpcba", "ogbg-ppa", "ogbg-code2"
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["13+ sub-datasets across node/link/graph property prediction; application-specific splits; Hu et al. NeurIPS 2020."],
+    "hypotheses": [
+      "The 'application-specific' splits produce consistent shift mechanisms within each shift-type: all year-splits behave similarly across sub-datasets.",
+      "A single cross-OGB method wins on temporal, scaffold, and species splits simultaneously."
+    ],
+    "intuitions": [
+      "An OGB leaderboard SOTA for 2024-25 and graph-foundation-model attempts spanning multiple OGB sub-datasets likely exist.",
+      "A year-split critique literature probably exists, since ogbn-arxiv's boundary is debated."
+    ],
+    "unknowns": [
+      "Whether OGB's splits are natural or curator-chosen cannot be determined — year-2017, a specific scaffold-bin, and a specific Wikidata-snapshot were all designer decisions, and there is no established label for 'split-designer as confounder'."
+    ],
+    "boundary": "Profile coverage is narrow — mostly (P=0, T=0-2, H=1-2, C=0-3, Ty=2-3); silent on process and most temporal dynamics."
+  },
+  "representational_commitments": [
+    "Application-specific split rules per sub-dataset (curator decisions)",
+    "Standardized leaderboard reporting protocol",
+    "Sub-dataset selection from larger source databases",
+    "MATERIALIZATION STATUS: ogbn-arxiv and ogb-mag fully materialized (separate manifests). ogbg-molhiv materialized (snapshots/ogb-suite/v1-2020/ogbg-molhiv.tar.gz). Other 10 sub-datasets pending."
+  ],
+  "derived_from": [],
+  "member_of": ["ogb-application-suite"],
+  "curation_provenance": {
+    "curator": "Hu, Fey, Zitnik et al. (Stanford)",
+    "ref": "Hu et al. 2020 NeurIPS",
+    "split_rule": "Per sub-dataset, application-specific (year/scaffold/species/throughput/timestamp)",
+    "motivation": "Realistic ML evaluation on graph data; standardize away random splits"
+  },
+  "checksums": {},
+  "baselines": []
+}

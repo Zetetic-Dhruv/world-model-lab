@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1.0",
+  "name": "wilds-shift-suite",
+  "members": ["wilds-suite", "wilds-camelyon17"],
+  "shared_schema": false,
+  "shift_axis": "shift-type-per-sub",
+  "pair_type": "intra-dataset-env-split",
+  "train_env": ["per-sub-train"],
+  "ood_test_env": ["per-sub-ood"],
+  "epistemic_state": {
+    "facts": ["10 sub-datasets each with own natural shift; Koh et al. ICML 2021; v2.0 unlabeled-data extension."],
+    "hypotheses": [
+      "No single method wins across all 10 sub-datasets (the anti-tradeoff hypothesis).",
+      "WILDS curation introduces a selection-for-clear-shift bias."
+    ],
+    "intuitions": ["WILDS v3 if announced; foundation-model cross-WILDS results 2024-25."],
+    "unknowns": ["Curated-benchmark validity: there is no established framework for how curator choice propagates to settings outside the benchmark."]
+  },
+  "baselines": []
+}

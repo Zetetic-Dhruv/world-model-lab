@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "name": "ghcn-cross-decade",
+  "members": ["noaa-ghcn-daily"],
+  "shared_schema": true,
+  "shift_axis": "decade-and-instrument-era",
+  "pair_type": "cross-time",
+  "train_env": ["pre-2000-stations"],
+  "ood_test_env": ["post-2000-stations"],
+  "epistemic_state": {
+    "facts": [">100k stations / 180 countries / ~1.4B daily values / up to 175-yr records; documented thermometer-type changes provide instrument-shift ground truth."],
+    "hypotheses": [
+      "For cross-station shift, the right environment unit is (station × instrument-era), not station alone.",
+      "Across decades, instrument and network-density changes dominate the apparent shift more than climate drift."
+    ],
+    "intuitions": ["GHCN homogenization literature (Menne, Williams); cross-network comparisons (GHCN-D vs CRUTEM vs HadISD)."],
+    "unknowns": [
+      "Instrument-era documentation completeness varies per-station; aggregate metadata can't decide.",
+      "Live updates mean dataset stability drifts; whether pinning-to-snapshot is equivalent to retrospective re-analysis cannot be determined."
+    ]
+  },
+  "baselines": []
+}

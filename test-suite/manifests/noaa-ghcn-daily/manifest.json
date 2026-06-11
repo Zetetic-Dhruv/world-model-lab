@@ -1,0 +1,78 @@
+{
+  "schema_version": "0.1.0",
+  "name": "noaa-ghcn-daily",
+  "version": "live-rolling",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily",
+    "host_type": "ncei",
+    "license": "WMO-Resolution-40 (free-for-research)",
+    "stability": "live-updating"
+  },
+  "domain": "earth-science.weather-station-observations",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 2, "temporal": 3, "hierarchical": 3, "compositional": 0, "typed": 2},
+  "env_axis": {
+    "name": "station-and-era",
+    "field": "(station_id, instrument_era)",
+    "values": [">100k stations × multiple instrument eras"],
+    "shift_type": "mechanism",
+    "shift_mechanism": "cross-station + cross-decade + documented thermometer-type changes",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "ghcn-cross-decade",
+    "ref": "Menne et al. 2012 (GHCN-Daily v3)",
+    "splits": [
+      {"env_id": "pre-2000-stations", "purpose": "train"},
+      {"env_id": "post-2000-stations", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 3758096384, "n_env_levels": null},
+  "schema": {
+    "regime": "event",
+    "entity_types": [
+      {"name": "country", "key": "country_code"},
+      {"name": "station", "key": "station_id", "parent_type": "country"}
+    ],
+    "event_types": [{
+      "name": "daily_observation",
+      "fields": [
+        {"name": "date", "type": "date"},
+        {"name": "element", "type": "categorical", "values": ["TMAX", "TMIN", "TAVG", "PRCP", "SNOW", "SNWD"]},
+        {"name": "value", "type": "float"},
+        {"name": "instrument_metadata", "type": "string"}
+      ]
+    }]
+  },
+  "epistemic_state": {
+    "facts": [">100k stations / 180 countries / ~1.4B daily values / up to 175-year records; documented thermometer-type changes provide instrument-shift ground truth."],
+    "hypotheses": [
+      "The correct env unit for cross-station shift is (station × instrument-era) rather than station alone, because documented instrument changes alter the measurement mechanism within a station.",
+      "Across the century-scale cross-decade shift, instrument and network-density changes dominate over observed climate drift."
+    ],
+    "intuitions": [
+      "The GHCN homogenization literature (Menne, Williams) likely records what is already corrected versus what remains.",
+      "Cross-network comparisons (GHCN-D vs CRUTEM vs HadISD) probably exist."
+    ],
+    "unknowns": [
+      "Instrument-era documentation completeness varies per station, so whether the corpus admits an implicit-vs-explicit metadata split cannot be determined from the aggregate.",
+      "Continuous live-update means the dataset's own stability drifts, and whether pinning to a snapshot is methodologically equivalent to retrospective re-analysis cannot be determined."
+    ],
+    "boundary": "H=3 (deep) but Ty=2 (limited variables); station-density biased toward developed countries."
+  },
+  "representational_commitments": [
+    "Station-as-entity (network-topology imposed)",
+    "Daily grain (sub-daily lost)",
+    "6 standard elements selected",
+    "Homogenization corrections applied to some stations"
+  ],
+  "derived_from": [],
+  "member_of": ["ghcn-cross-decade"],
+  "checksums": {
+    "snapshots/noaa-ghcn-daily/raw.tar": "sha256:46c4cee73b6e0455493111204850d364f4361c184c22bb0fb0f99dc2946d6135"
+  },
+  "checksums": {},
+  "baselines": []
+}

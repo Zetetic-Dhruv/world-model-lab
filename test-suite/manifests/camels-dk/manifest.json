@@ -1,0 +1,113 @@
+{
+  "schema_version": "0.1.0",
+  "name": "camels-dk",
+  "version": "2025.04.essd",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://dataverse.geus.dk/dataset.xhtml?persistentId=doi:10.22008/FK2/AZXSYP",
+    "doi": "10.22008/FK2/AZXSYP",
+    "host_type": "geus-dataverse",
+    "license": "CC0-1.0",
+    "stability": "stable"
+  },
+  "domain": "earth-science.hydrology",
+  "regime": "event",
+  "data_origin": {
+    "primary": "natural"
+  },
+  "asymmetry_profile": {
+    "process": 3,
+    "temporal": 3,
+    "hierarchical": 2,
+    "compositional": 0,
+    "typed": 2
+  },
+  "env_axis": {
+    "name": "country",
+    "field": "country_code",
+    "values": ["DK"],
+    "shift_type": "covariate",
+    "shift_mechanism": "geographic-cohort with potential mechanism component (snow-melt and groundwater regimes differ from US median)",
+    "pair_with": ["camels-us", "camels-ind"]
+  },
+  "ood_protocol": {
+    "name": "pub-cross-country",
+    "ref": "Liu et al. 2025 ESSD doi:10.5194/essd-17-1551-2025; Kratzert et al. 2019 HESS (PUB methodology)",
+    "splits": [
+      {"env_id": "us", "purpose": "train", "ref": "camels-us:traces"},
+      {"env_id": "dk", "purpose": "ood-test", "ref": "self:traces"}
+    ]
+  },
+  "scale": {
+    "entities": 3330,
+    "events": null,
+    "raw_bytes": 2934993414,
+    "n_env_levels": 1
+  },
+  "schema": {
+    "regime": "event",
+    "entity_types": [
+      {
+        "name": "catchment",
+        "key": "catchment_id"
+      }
+    ],
+    "event_types": [
+      {
+        "name": "daily_observation",
+        "fields": [
+          {"name": "precip_mm", "type": "float", "unit": "mm/day"},
+          {"name": "tmin_c", "type": "float", "unit": "deg-C"},
+          {"name": "tmax_c", "type": "float", "unit": "deg-C"},
+          {"name": "discharge_mm", "type": "float", "unit": "mm/day"}
+        ]
+      }
+    ],
+    "static_attributes": [
+      {"name": "drainage_area_km2", "type": "float"},
+      {"name": "mean_elevation_m", "type": "float"},
+      {"name": "land_use_class", "type": "categorical"},
+      {"name": "soil_type", "type": "categorical"},
+      {"name": "geology_class", "type": "categorical"}
+    ]
+  },
+  "epistemic_state": {
+    "facts": [
+      "3,330 Danish catchments at daily resolution, 1989-2019, schema-aligned with CAMELS-US per Liu et al. 2025 ESSD (doi:10.5194/essd-17-1551-2025)."
+    ],
+    "hypotheses": [
+      "The matched (P=3, T=3) structural profile of CAMELS-US and CAMELS-DK predicts transfer-method ordering, consistent with the published PUB ranking.",
+      "The country axis is a mechanism shift rather than a pure covariate shift: snow-melt and groundwater regimes in Denmark differ systematically from the US median.",
+      "The cross-country generalization gap is predictable from the datasets' typed-process structure alone, before any model training."
+    ],
+    "intuitions": [
+      "Nearing et al.'s 2024 Nature global-flood model likely underperforms on CAMELS-DK specifically — the paper is US-heavy and DK performance is buried or absent.",
+      "A combined US+DK+IND meta-analysis ('META-CAMELS') likely already exists or is emerging in the 2024-25 literature."
+    ],
+    "unknowns": [
+      "Measurement-network change and climate change cannot be disentangled as joint sources of within-DK temporal drift — both are mechanism shifts with the same data signature, and there is no established label for 'measurement-process drift' as a distinct shift type.",
+      "Whether schema-alignment with CAMELS-US lossily projects DK-specific signal (e.g. groundwater-mediated baseflow dynamics present in Denmark but poorly represented by US-derived static attributes)."
+    ],
+    "boundary": "C=0 — the dataset is silent on compositional shift. Its contribution is the country (cross-population) axis, not expanded structural coverage."
+  },
+  "representational_commitments": [
+    "Catchment partition is an imposed cartographic decision, not discovered from the data",
+    "Daily temporal resolution coarsens away sub-daily mechanism (storm hydrograph shape)",
+    "Forcing variables chosen to be Daymet-equivalent — biases the schema toward measurements the US release also has",
+    "Static attribute set is schema-aligned with US, potentially lossy for groundwater-driven DK hydrology"
+  ],
+  "derived_from": [],
+  "member_of": ["camels-cross-country"],
+  "checksums": {
+    "snapshots/camels-dk/2025.04.essd/camels-dk-raw.tar.gz": "sha256:c2678c647c26fe0ecf651a4a130bb506a3f0cee99703ffc50feec30597c789df"
+  },
+  "baselines": [
+    {
+      "name": "EA-LSTM in-country PUB (US reference)",
+      "ref": "Kratzert et al. 2019 HESS",
+      "metric": "median_nse",
+      "value": 0.74,
+      "env": "us"
+    }
+  ]
+}

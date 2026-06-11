@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1.0",
+  "name": "fred-md",
+  "version": "vintage-pinned",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://research.stlouisfed.org/econ/mccracken/fred-databases/",
+    "host_type": "stlouisfed",
+    "license": "public-domain (US govt work)",
+    "stability": "live-updating"
+  },
+  "domain": "economics.macro-time-series",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 1, "temporal": 3, "hierarchical": 2, "compositional": 0, "typed": 2},
+  "env_axis": {
+    "name": "regime",
+    "field": "date_range",
+    "values": ["pre-2008", "2008-2020", "post-2020"],
+    "shift_type": "mechanism",
+    "shift_mechanism": "published regime shifts: GFC 2007-09, COVID 2020, ZLB monetary period; vintage-as-env is a distinct axis",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "fred-regime-shift",
+    "ref": "McCracken & Ng 2016 JBES; Goulet Coulombe et al. 2022 JAE",
+    "splits": [
+      {"env_id": "pre-2008", "purpose": "train", "ref": "self:traces"},
+      {"env_id": "post-2020", "purpose": "ood-test", "ref": "self:traces"}
+    ]
+  },
+  "scale": {"entities": 134, "events": null, "raw_bytes": 27556, "n_env_levels": 3},
+  "schema": {
+    "regime": "event",
+    "entity_types": [{"name": "series", "key": "series_id"}],
+    "event_types": [{
+      "name": "monthly_observation",
+      "fields": [
+        {"name": "value", "type": "float"},
+        {"name": "transformation_code", "type": "int", "description": "McCracken-Ng transformation code"}
+      ]
+    }],
+    "static_attributes": [
+      {"name": "category_group", "type": "categorical", "values": ["output", "labor", "housing", "consumption", "money_credit", "interest_rates", "prices", "stock_market"]}
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["134+ monthly US macro series 1959–present + ALFRED vintage archive (real-time snapshots by release date)."],
+    "hypotheses": [
+      "{pre-2008, 2008-2020, post-2020} are three distinct envs rather than two, because the post-2020 period reflects a persistent shift and not merely a transient COVID episode.",
+      "Vintage-as-env (released-by date) is categorically different from measurement-date-as-env — the same data under a different shift type."
+    ],
+    "intuitions": [
+      "Goulet Coulombe 2022 and Medeiros 2021 likely have follow-ups extending to post-2024 data.",
+      "A nowcasting literature using the ALFRED vintage archive likely exists.",
+      "Macroeconomic foundation-model work from 2024-25 may exist, if any."
+    ],
+    "unknowns": [
+      "Whether 'regime' is a discrete latent state (recession / expansion / ZLB) or a continuous latent variable cannot be determined — the data does not commit, but every method does, and there is no established label for 'implicit regime labeling chosen by the method, not the data'.",
+      "Series-selection (the curated 134) is itself a representational commitment that biases all comparisons."
+    ],
+    "boundary": "C=0; aggregation-decomposition (national inflation → sector inflation) is implicit in the variable list, not exposed as a compositional handle."
+  },
+  "representational_commitments": [
+    "134-series curated selection (McCracken-Ng)",
+    "Monthly grain fixed",
+    "Vintage-as-snapshot policy (ALFRED)",
+    "8-category grouping is a researcher convention"
+  ],
+  "derived_from": [],
+  "member_of": ["fred-regime-shift"],
+  "checksums": {
+    "snapshots/fred-md/raw.tar.gz": "sha256:2005bea78ee4ecd69868a442f5a2fc9558bdd159c2589f6e9f2c9ca10f44bcbd"
+  },
+  "materialization_status": "current-md.csv materialized (correct URL: research.stlouisfed.org/econ/mccracken/fred-databases/current-md.csv, not the S3 path). ALFRED vintage archive deferred.",
+  "baselines": []
+}

@@ -1,0 +1,74 @@
+{
+  "schema_version": "0.1.0",
+  "name": "m6",
+  "version": "2022-2023-final",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://github.com/Mcompetitions/M6-methods",
+    "host_type": "github",
+    "license": "MIT",
+    "stability": "closed-after-period"
+  },
+  "domain": "finance.forecasting-competition",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 1, "temporal": 3, "hierarchical": 2, "compositional": 0, "typed": 1},
+  "env_axis": {
+    "name": "live-round",
+    "field": "round_index",
+    "values": ["1", "2", "...", "12"],
+    "shift_type": "concept",
+    "shift_mechanism": "forward live-evaluation across 12 monthly rounds spanning 2022 Fed-tightening + inflation regime change",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "m6-forward-live",
+    "ref": "Makridakis et al. 2024 (M6 results paper)",
+    "splits": [
+      {"env_id": "round-1-to-6", "purpose": "train", "ref": "self:traces"},
+      {"env_id": "round-7-to-12", "purpose": "ood-test", "ref": "self:traces"}
+    ]
+  },
+  "scale": {"entities": 100, "events": 1200, "raw_bytes": 53477376, "n_env_levels": 12},
+  "schema": {
+    "regime": "event",
+    "entity_types": [{"name": "asset", "key": "asset_ticker"}],
+    "event_types": [{
+      "name": "monthly_return",
+      "fields": [
+        {"name": "return", "type": "float"},
+        {"name": "predicted_quintile", "type": "categorical", "values": ["1", "2", "3", "4", "5"]}
+      ]
+    }],
+    "static_attributes": [
+      {"name": "asset_type", "type": "categorical", "values": ["stock", "etf"]}
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["100 publicly-traded assets (50 stocks + 50 ETFs) × 12 monthly live submission rounds (Q1 2022 – Q1 2023)."],
+    "hypotheses": [
+      "The 2022 Fed-tightening / inflation regime did not expose method-quality differentials: returns were so noise-dominated that ranking is effectively random.",
+      "M6's forward-live design is a noisy in-distribution test for short-horizon near-martingale returns rather than a genuine OOD test."
+    ],
+    "intuitions": [
+      "The M6 results paper (Makridakis et al. 2024) likely documents the winning methods and what they did differently.",
+      "Work on M5-vs-M6 transferability and finance-foundation-models probably exists post-2023."
+    ],
+    "unknowns": [
+      "There is no established label for 'evaluation under near-irreducible-noise' — methods compete in a regime where signal is a small fraction of variance, and whether any OOD measurement can resolve them within 12 rounds cannot be determined."
+    ],
+    "boundary": "N=100 assets, 12 rounds — useful only as a forward-live design pattern, not for structural OOD study; a methodological anchor more than a dataset."
+  },
+  "representational_commitments": [
+    "100-asset selection (50 stocks + 50 ETFs)",
+    "Monthly round cadence",
+    "Quintile prediction (5-class) rather than continuous return prediction",
+    "Live-evaluation closed after Q1 2023"
+  ],
+  "derived_from": [],
+  "member_of": ["m6-forward-live"],
+  "checksums": {
+    "snapshots/m6/2023-final/m6-source.tar.gz": "sha256:a2c3dbbf9d030a86cf8fbda48a400a29dc64e891207041f5eea8f296968fac01"
+  },
+  "baselines": []
+}

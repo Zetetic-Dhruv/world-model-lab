@@ -1,0 +1,80 @@
+{
+  "schema_version": "0.1.0",
+  "name": "amazon-reviews-2023",
+  "version": "2023-sept",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://amazon-reviews-2023.github.io/",
+    "host_type": "ucsd",
+    "license": "research-use-only",
+    "stability": "churning"
+  },
+  "domain": "ecommerce.cross-category-recommendation",
+  "regime": "event",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 1, "temporal": 3, "hierarchical": 2, "compositional": 0, "typed": 3},
+  "env_axis": {
+    "name": "category",
+    "field": "category",
+    "values": ["33 product categories"],
+    "shift_type": "covariate",
+    "shift_mechanism": "cross-category transfer (Clothing→Beauty, CDs→Digital-Music, Toys→Video-Games); temporal shift orthogonal",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "amazon-cross-category",
+    "ref": "Ni et al. 2019; Hou et al. 2024 (Amazon Reviews 2023)",
+    "splits": [
+      {"env_id": "source-category", "purpose": "train"},
+      {"env_id": "target-category", "purpose": "ood-test"}
+    ]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": 23622320128, "n_env_levels": 33},
+  "schema": {
+    "regime": "event",
+    "entity_types": [
+      {"name": "user", "key": "user_id"},
+      {"name": "item", "key": "asin", "parent_type": "category"},
+      {"name": "category", "key": "category"}
+    ],
+    "event_types": [{
+      "name": "review",
+      "fields": [
+        {"name": "rating", "type": "float", "unit": "stars"},
+        {"name": "text", "type": "string"},
+        {"name": "timestamp", "type": "datetime"},
+        {"name": "verified_purchase", "type": "boolean"}
+      ]
+    }]
+  },
+  "epistemic_state": {
+    "facts": ["571.54M reviews from 54.51M users across 48.19M items, May 1996 - Sept 2023; 33 categories."],
+    "hypotheses": [
+      "Category-cluster is a better environment unit than raw 'category', because several of the 33 categories are near-duplicates (e.g. fashion spans Clothing, Shoes, and Bags).",
+      "Temporal shift within a category dominates cross-category shift, because platform and reviewer behaviour drift faster over 1996-2023 than item semantics differ across categories."
+    ],
+    "intuitions": [
+      "Cross-comparisons between the 2018 and 2023 releases likely exist in the recommender-systems literature.",
+      "Cross-domain recommendation (CDR) leaderboards for 2024-25 probably already use this release.",
+      "The McAuley group likely has post-2023 releases extending this collection."
+    ],
+    "unknowns": [
+      "Whether user activity linking categories carries genuine cross-domain signal or merely correlation (people who buy X also buy Y) cannot be determined from the data.",
+      "The 33 categories are Amazon's commercial taxonomy, not a semantic taxonomy — whether ML-relevant distinctions match commercial ones cannot be decided from the data."
+    ],
+    "boundary": "The dataset has strong temporal (T=3) and typed (Ty=3) axes but C=0, so it cannot show within-review compositional shift."
+  },
+  "representational_commitments": [
+    "33-category commercial taxonomy",
+    "1996-2023 temporal range fixed",
+    "User-item-review-text bundling",
+    "Cross-category transfer, not within-category cold-start"
+  ],
+  "derived_from": [],
+  "member_of": ["amazon-cross-category"],
+  "checksums": {
+    "snapshots/amazon-reviews-2023/raw.tar": "sha256:6f4d09ae18270568888fe060c2c7daf9323b3e6a550f5f4418761de025d3eab1"
+  },
+  "materialization_status": "6 of 33 categories materialized (All_Beauty, Books, Clothing_Shoes_and_Jewelry, Electronics, Toys_and_Games, CDs_and_Vinyl). 22 GB. Other 27 categories deferred — same URL pattern works (mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/<Category>.jsonl.gz).",
+  "baselines": []
+}

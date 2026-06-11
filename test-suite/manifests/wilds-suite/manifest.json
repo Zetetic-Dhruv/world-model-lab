@@ -1,0 +1,72 @@
+{
+  "schema_version": "0.1.0",
+  "name": "wilds-suite",
+  "version": "v2.0-2022",
+  "snapshot_date": "2026-05-26",
+  "source": {
+    "url": "https://wilds.stanford.edu/",
+    "host_type": "pypi",
+    "license": "MIT",
+    "stability": "churning"
+  },
+  "domain": "ood-benchmark-suite",
+  "regime": "blob",
+  "data_origin": {"primary": "natural"},
+  "asymmetry_profile": {"process": 0, "temporal": 1, "hierarchical": 2, "compositional": 1, "typed": 2},
+  "env_axis": {
+    "name": "shift-type-per-sub",
+    "field": "sub_dataset_env",
+    "values": ["hospital", "camera-trap", "time-region", "country", "experimental-batch", "location-sensor", "scaffold", "subpopulation", "user", "author"],
+    "shift_type": "covariate",
+    "shift_mechanism": "10 sub-datasets each with its own natural shift mechanism",
+    "pair_with": []
+  },
+  "ood_protocol": {
+    "name": "wilds-per-sub",
+    "ref": "Koh et al. 2021 ICML; Sagawa et al. 2022 (v2)",
+    "splits": [{"env_id": "sub-dataset-specific", "purpose": "ood-test"}]
+  },
+  "scale": {"entities": null, "events": null, "raw_bytes": null, "n_env_levels": 10},
+  "schema": {
+    "regime": "blob",
+    "suite_note": "suite — 10 sub-datasets. Camelyon17 broken out separately as a core entry within the suite.",
+    "sub_datasets": [
+      "camelyon17", "iwildcam", "fmow-wilds", "povertymap", "rxrx1",
+      "globalwheat", "ogb-molpcba", "civilcomments", "amazon-wilds", "py150"
+    ]
+  },
+  "epistemic_state": {
+    "facts": ["10 sub-datasets curated for natural shift; v2.0 unlabeled-data extension; Koh et al. ICML 2021."],
+    "hypotheses": [
+      "No single method wins across all 10 sub-datasets; method ranking is shift-type-dependent.",
+      "WILDS's curation introduces a selection-for-clear-shift bias."
+    ],
+    "intuitions": [
+      "A WILDS v3 may have been announced.",
+      "The WILDS-vs-Wild-Time naming confusion likely appears in the 2023-25 literature (these are distinct projects).",
+      "Foundation-model cross-WILDS results have probably been published."
+    ],
+    "unknowns": [
+      "WILDS deliberately picked clearly-shifted environments; there is no established framing for how curator choice propagates to out-of-benchmark generalizability.",
+      "Profile coverage is sparse — no profile region has ≥3 WILDS sub-datasets, so within-region statistics are weak."
+    ],
+    "boundary": "A suite requiring descent to sub-datasets for routing; suite-level claims need cross-sub-dataset agreement, which is empirically rare."
+  },
+  "representational_commitments": [
+    "10 specific sub-datasets curated for clear shift (selection bias)",
+    "Each sub-dataset's env labels are curator-chosen",
+    "v2.0 added unlabeled data for UDA — changing the protocol mid-suite",
+    "Standardized eval metric per sub-dataset",
+    "MATERIALIZATION STATUS: 8 of 10 WILDS sub-datasets in GCS — civilcomments (260 MB), rxrx1 (7 GB sha=886594f2...), globalwheat (9.6 GB sha=8b76b4ef...), amazon-wilds (6.6 GB sha=2a13eae6...), iwildcam (12 GB sha=b0e5d056...), fmow (51 GB sha=8c802795...), py150 (928 MB), poverty (13 GB sha=6ee249b7e29a8a79fce804d0ea6716fbb5b514809209a2836e967a02adaa5376). camelyon17 has its own manifest (wilds-camelyon17, pending re-download via VM after stalled Mac attempt). OGB-MolPCBA materialized within ogb-suite."
+  ],
+  "derived_from": [],
+  "member_of": ["wilds-shift-suite"],
+  "curation_provenance": {
+    "curator": "Koh, Sagawa et al. (Stanford)",
+    "ref": "Koh et al. 2021 ICML",
+    "split_rule": "Per sub-dataset, natural-shift-aware",
+    "motivation": "OOD generalization in real-world deployment"
+  },
+  "checksums": {},
+  "baselines": []
+}
